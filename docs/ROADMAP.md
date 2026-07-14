@@ -170,9 +170,12 @@ its stated verification passes.
   gate, refusing unsafe/existing output paths, printing no source/path data, and
   staying below the documented 500 ms direct-CLI and 700 ms repository-command
   median targets.
-- [ ] **M138 — clean-history ecosystem acceptance.** Done when the public
-  candidates complete packed acceptance and receive explicit approval before
-  any visibility or package publication change.
+- [x] **M138a — clean-history ecosystem acceptance.** Ecosystem Acceptance Kit
+  index sequence 10 records packed acceptance receipt
+  `c8235f5102bb39c6fc4964ea3a0622cbcf61eb7d2785ac4c51536bb1968a721c`
+  for the clean-history public-readiness candidate.
+- [ ] **M138b — publication approval.** Obtain explicit approval before any
+  visibility or package publication change.
 
 ## Current scope constraints
 
