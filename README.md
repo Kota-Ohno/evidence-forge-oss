@@ -10,9 +10,9 @@ Evidence Forge stores immutable source snapshots, records exact citation
 selectors, and refuses promotion when source integrity or citation verification
 fails. **An observation is only a candidate; promotion is always explicit.**
 
-> **Installation status:** this repository is currently private and the package
-> has `private: true`; it is not published to npm. Clone it from an account with
-> access. pnpm is the supported package manager.
+> **Distribution status:** install from this source repository with pnpm. The
+> package remains `private: true` and is not published to npm, which prevents an
+> accidental registry release while keeping source installation supported.
 
 ## Shortest path
 
