@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evidence-forge.local/schemas/citation-preview.schema.json",
+  "title": "Evidence Forge offline citation preview",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "kind", "captureId", "sourceSha256", "query", "matchMode", "matches", "truncated", "citationView", "assurance"],
+  "properties": {
+    "version": { "const": 1 },
+    "kind": { "const": "EvidenceForgeCitationPreview" },
+    "captureId": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "sourceSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "query": { "type": "string", "minLength": 1, "maxLength": 4096 },
+    "matchMode": { "enum": ["exact", "normalized-whitespace", "none"] },
+    "matches": {
+      "type": "array",
+      "maxItems": 20,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["exact", "prefix", "suffix"],
+        "properties": {
+          "exact": { "type": "string", "minLength": 1, "maxLength": 8192 },
+          "prefix": { "type": "string", "maxLength": 80 },
+          "suffix": { "type": "string", "maxLength": 80 }
+        }
+      }
+    },
+    "truncated": { "type": "boolean" },
+    "citationView": {
+      "anyOf": [
+        { "type": "null" },
+        { "$ref": "citation-view.schema.json" }
+      ]
+    },
+    "assurance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["networkAccessed", "candidateCreated", "evidenceCreated"],
+      "properties": {
+        "networkAccessed": { "const": false },
+        "candidateCreated": { "const": false },
+        "evidenceCreated": { "const": false }
+      }
+    }
+  }
+}

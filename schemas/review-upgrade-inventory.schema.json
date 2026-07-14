@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evidence-forge.local/schemas/review-upgrade-inventory.schema.json",
+  "title": "Evidence Forge Review Upgrade Inventory",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "kind", "outcome", "verifiedTransitionCount", "firstRelease", "latestRelease", "timestampAttested"],
+  "properties": {
+    "version": { "const": 1 },
+    "kind": { "const": "EvidenceForgeReviewUpgradeInventory" },
+    "outcome": { "const": "verified" },
+    "verifiedTransitionCount": { "type": "integer", "minimum": 1, "maximum": 256 },
+    "firstRelease": { "$ref": "#/$defs/semver" },
+    "latestRelease": { "$ref": "#/$defs/semver" },
+    "timestampAttested": { "const": false }
+  },
+  "$defs": {
+    "semver": {
+      "type": "string",
+      "pattern": "^(?:0|[1-9]\\d*)\\.(?:0|[1-9]\\d*)\\.(?:0|[1-9]\\d*)(?:-[0-9A-Za-z.-]+)?$",
+      "maxLength": 128
+    }
+  }
+}

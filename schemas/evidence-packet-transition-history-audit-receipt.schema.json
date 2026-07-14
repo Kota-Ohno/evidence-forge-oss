@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evidence-forge.local/schemas/evidence-packet-transition-history-audit-receipt.schema.json",
+  "title": "Evidence Forge Evidence packet transition history audit receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "kind", "outcome", "history", "coverage", "assurance", "integrity"],
+  "properties": {
+    "version": { "const": 1 },
+    "kind": { "const": "EvidenceForgeEvidencePacketTransitionHistoryAuditReceipt" },
+    "outcome": { "const": "verified" },
+    "history": {
+      "type": "object", "additionalProperties": false, "required": ["indexSha256", "transitionCount"],
+      "properties": {
+        "indexSha256": { "$ref": "#/$defs/hash" },
+        "transitionCount": { "type": "integer", "minimum": 1, "maximum": 99 }
+      }
+    },
+    "coverage": {
+      "type": "object", "additionalProperties": false,
+      "required": ["initialBundleSha256", "latestBundleSha256", "initialPacketCount", "latestPacketCount", "firstTransitionAuditSha256", "lastTransitionAuditSha256"],
+      "properties": {
+        "initialBundleSha256": { "$ref": "#/$defs/hash" },
+        "latestBundleSha256": { "$ref": "#/$defs/hash" },
+        "initialPacketCount": { "type": "integer", "minimum": 1, "maximum": 99 },
+        "latestPacketCount": { "type": "integer", "minimum": 2, "maximum": 100 },
+        "firstTransitionAuditSha256": { "$ref": "#/$defs/hash" },
+        "lastTransitionAuditSha256": { "$ref": "#/$defs/hash" }
+      }
+    },
+    "assurance": {
+      "type": "object", "additionalProperties": false, "required": ["timestamp"],
+      "properties": { "timestamp": { "const": "not-attested" } }
+    },
+    "integrity": {
+      "type": "object", "additionalProperties": false, "required": ["algorithm", "auditSha256"],
+      "properties": { "algorithm": { "const": "sha256-jcs" }, "auditSha256": { "$ref": "#/$defs/hash" } }
+    }
+  },
+  "$defs": { "hash": { "type": "string", "pattern": "^[0-9a-f]{64}$" } }
+}

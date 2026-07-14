@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evidence-forge.local/schemas/evidence-packet.schema.json",
+  "title": "Evidence Forge portable Evidence packet",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "kind", "source", "candidate", "evidence", "assurance", "integrity"],
+  "properties": {
+    "version": { "const": 1 },
+    "kind": { "const": "PortableEvidencePacket" },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "mediaType", "sha256", "byteLength", "base64"],
+      "properties": {
+        "name": { "const": "source.bin" },
+        "mediaType": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "byteLength": { "type": "integer", "minimum": 0, "maximum": 16777216 },
+        "base64": { "type": "string", "contentEncoding": "base64", "maxLength": 22369624 }
+      }
+    },
+    "candidate": { "$ref": "evidence-candidate.schema.json" },
+    "evidence": { "$ref": "verified-evidence.schema.json" },
+    "assurance": {
+      "type": "object", "additionalProperties": false, "required": ["timestamp"],
+      "properties": { "timestamp": { "const": "not-attested" } }
+    },
+    "integrity": {
+      "type": "object", "additionalProperties": false, "required": ["algorithm", "packetSha256"],
+      "properties": {
+        "algorithm": { "const": "sha256-jcs" },
+        "packetSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+      }
+    }
+  }
+}

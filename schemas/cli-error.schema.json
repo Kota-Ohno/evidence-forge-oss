@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evidence-forge.local/schemas/cli-error.schema.json",
+  "title": "Evidence Forge CLI Error",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "kind", "outcome", "code", "message"],
+  "properties": {
+    "version": { "const": 1 },
+    "kind": { "const": "EvidenceForgeCliError" },
+    "outcome": { "const": "error" },
+    "code": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9_]{2,63}$"
+    },
+    "message": {
+      "type": "string",
+      "maxLength": 4096
+    }
+  }
+}

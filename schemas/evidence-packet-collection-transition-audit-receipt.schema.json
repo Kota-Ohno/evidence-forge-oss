@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evidence-forge.local/schemas/evidence-packet-collection-transition-audit-receipt.schema.json",
+  "title": "Evidence Forge Evidence packet collection transition audit receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "kind", "outcome", "previous", "next", "append", "assurance", "integrity"],
+  "properties": {
+    "version": { "const": 1 },
+    "kind": { "const": "EvidenceForgeEvidencePacketCollectionTransitionAuditReceipt" },
+    "outcome": { "const": "verified" },
+    "previous": { "$ref": "#/$defs/bundle" },
+    "next": { "$ref": "#/$defs/bundle" },
+    "append": {
+      "type": "object", "additionalProperties": false,
+      "required": ["packetCount", "firstSequence", "lastSequence", "firstPacketSha256", "lastPacketSha256"],
+      "properties": {
+        "packetCount": { "type": "integer", "minimum": 1, "maximum": 99 },
+        "firstSequence": { "type": "integer", "minimum": 2, "maximum": 100 },
+        "lastSequence": { "type": "integer", "minimum": 2, "maximum": 100 },
+        "firstPacketSha256": { "$ref": "#/$defs/hash" },
+        "lastPacketSha256": { "$ref": "#/$defs/hash" }
+      }
+    },
+    "assurance": {
+      "type": "object", "additionalProperties": false, "required": ["timestamp"],
+      "properties": { "timestamp": { "const": "not-attested" } }
+    },
+    "integrity": {
+      "type": "object", "additionalProperties": false, "required": ["algorithm", "auditSha256"],
+      "properties": { "algorithm": { "const": "sha256-jcs" }, "auditSha256": { "$ref": "#/$defs/hash" } }
+    }
+  },
+  "$defs": {
+    "hash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "bundle": {
+      "type": "object", "additionalProperties": false,
+      "required": ["bundleSha256", "indexSha256", "packetCount"],
+      "properties": {
+        "bundleSha256": { "$ref": "#/$defs/hash" },
+        "indexSha256": { "$ref": "#/$defs/hash" },
+        "packetCount": { "type": "integer", "minimum": 1, "maximum": 100 }
+      }
+    }
+  }
+}

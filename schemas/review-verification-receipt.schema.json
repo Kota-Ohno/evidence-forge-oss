@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evidence-forge.local/schema/review-verification-receipt/1",
+  "title": "Review Verification Receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "outcome", "verifiedAt", "bundle", "report", "signatures", "trust", "integrity"],
+  "properties": {
+    "version": { "const": 1 },
+    "outcome": { "const": "verified" },
+    "verifiedAt": { "type": "string", "format": "date-time" },
+    "bundle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "bundleSha256"],
+      "properties": {
+        "version": { "const": 1 },
+        "bundleSha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "report": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reportSha256", "trustedHeadSha256", "eventCount"],
+      "properties": {
+        "reportSha256": { "$ref": "#/$defs/sha256" },
+        "trustedHeadSha256": { "$ref": "#/$defs/sha256" },
+        "eventCount": { "const": 4 },
+        "recordedAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "signatures": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["algorithm", "verifiedSignerCount", "threshold"],
+      "properties": {
+        "algorithm": { "const": "ed25519" },
+        "verifiedSignerCount": { "type": "integer", "minimum": 1, "maximum": 32 },
+        "threshold": { "type": "integer", "minimum": 1, "maximum": 32 }
+      }
+    },
+    "trust": {
+      "oneOf": [
+        { "$ref": "#/$defs/manualTrust" },
+        { "$ref": "#/$defs/rotationTrust" }
+      ]
+    },
+    "integrity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["algorithm", "receiptSha256"],
+      "properties": {
+        "algorithm": { "const": "sha256-jcs" },
+        "receiptSha256": { "$ref": "#/$defs/sha256" }
+      }
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "manualTrust": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode", "policySha256"],
+      "properties": {
+        "mode": { "const": "manual" },
+        "policySha256": { "$ref": "#/$defs/sha256" },
+        "manifestSha256": { "$ref": "#/$defs/sha256" },
+        "validFrom": { "type": "string", "format": "date-time" },
+        "validUntil": { "type": "string", "format": "date-time" }
+      }
+    },
+    "rotationTrust": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode", "historySha256", "activeSequence", "verifiedEntryCount", "completedRotations", "scheduledCount", "latestEffectiveAt", "latestAddedKeyCount", "latestRemovedKeyCount"],
+      "properties": {
+        "mode": { "const": "rotation-history" },
+        "historySha256": { "$ref": "#/$defs/sha256" },
+        "activeSequence": { "type": "integer", "minimum": 1, "maximum": 32 },
+        "verifiedEntryCount": { "type": "integer", "minimum": 1, "maximum": 32 },
+        "completedRotations": { "type": "integer", "minimum": 0, "maximum": 31 },
+        "scheduledCount": { "type": "integer", "minimum": 0, "maximum": 31 },
+        "latestEffectiveAt": { "type": "string", "format": "date-time" },
+        "latestAddedKeyCount": { "type": "integer", "minimum": 0, "maximum": 64 },
+        "latestRemovedKeyCount": { "type": "integer", "minimum": 0, "maximum": 64 },
+        "manifestSha256": { "$ref": "#/$defs/sha256" }
+      }
+    }
+  }
+}

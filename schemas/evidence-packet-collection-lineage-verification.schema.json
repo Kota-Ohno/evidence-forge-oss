@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evidence-forge.local/schemas/evidence-packet-collection-lineage-verification.schema.json",
+  "title": "Evidence Forge packet collection lineage verification",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "kind", "outcome", "lineageSha256", "collectionBundleSha256", "historyIndexSha256", "historyAuditSha256", "packetCount", "transitionCount", "initialPacketCount", "historyCollectionReaudited", "timestampAttested"],
+  "properties": {
+    "version": { "const": 1 },
+    "kind": { "const": "EvidenceForgeEvidencePacketCollectionLineageVerification" },
+    "outcome": { "const": "verified" },
+    "lineageSha256": { "$ref": "#/$defs/sha256" },
+    "collectionBundleSha256": { "$ref": "#/$defs/sha256" },
+    "historyIndexSha256": { "$ref": "#/$defs/sha256" },
+    "historyAuditSha256": { "$ref": "#/$defs/sha256" },
+    "packetCount": { "type": "integer", "minimum": 2, "maximum": 100 },
+    "transitionCount": { "type": "integer", "minimum": 1, "maximum": 99 },
+    "initialPacketCount": { "type": "integer", "minimum": 1, "maximum": 99 },
+    "historyCollectionReaudited": { "const": true },
+    "timestampAttested": { "const": false }
+  },
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+  }
+}

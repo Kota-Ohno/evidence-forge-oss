@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evidence-forge.local/schemas/release-evidence-pack.schema.json",
+  "title": "Evidence Forge durable release evidence pack",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "kind", "package", "artifacts", "schemas", "summary", "integrity"],
+  "properties": {
+    "version": { "const": 1 },
+    "kind": { "const": "EvidenceForgeReleaseEvidencePack" },
+    "package": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mediaType", "sha256", "contentBase64"],
+      "properties": {
+        "mediaType": { "const": "application/gzip" },
+        "sha256": { "$ref": "#/$defs/sha256" },
+        "contentBase64": { "type": "string", "contentEncoding": "base64", "maxLength": 22369624 }
+      }
+    },
+    "artifacts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["bundle", "manifest", "receipt", "statement", "provenancePublicKey"],
+      "properties": {
+        "bundle": { "type": "object" },
+        "manifest": { "type": "object" },
+        "receipt": { "type": "object" },
+        "statement": { "type": "object" },
+        "provenancePublicKey": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["keyId", "spkiDerBase64"],
+          "properties": {
+            "keyId": { "$ref": "#/$defs/sha256" },
+            "spkiDerBase64": { "type": "string", "contentEncoding": "base64", "maxLength": 21848 }
+          }
+        },
+        "trustHistory": { "type": "object" }
+      }
+    },
+    "schemas": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenanceStatement", "releaseArchiveAuditReceipt", "releaseEvidenceIndex", "releaseEvidencePack", "reviewVerificationReceipt", "stackAcceptanceReport", "trustManifest"],
+      "properties": {
+        "provenanceStatement": { "type": "object" },
+        "releaseArchiveAuditReceipt": { "type": "object" },
+        "releaseEvidenceIndex": { "type": "object" },
+        "releaseEvidencePack": { "type": "object" },
+        "reviewVerificationReceipt": { "type": "object" },
+        "stackAcceptanceReport": { "type": "object" },
+        "trustManifest": { "type": "object" }
+      }
+    },
+    "summary": { "type": "string", "maxLength": 65536 },
+    "integrity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["algorithm", "packSha256"],
+      "properties": {
+        "algorithm": { "const": "sha256-jcs" },
+        "packSha256": { "$ref": "#/$defs/sha256" }
+      }
+    }
+  },
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+  }
+}

@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evidence-forge.local/schema/stack-acceptance-report/1",
+  "title": "Stack Acceptance Report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "outcome", "eventCount", "trustedHeadSha256", "candidateKind", "evidenceKind", "candidateLinked", "revisions"],
+  "properties": {
+    "version": { "const": 1 },
+    "recordedAt": { "type": "string", "format": "date-time" },
+    "outcome": { "const": "verified" },
+    "eventCount": { "const": 4 },
+    "trustedHeadSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "candidateKind": { "const": "EvidenceCandidate" },
+    "evidenceKind": { "const": "VerifiedEvidence" },
+    "candidateLinked": { "const": true },
+    "revisions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["evidenceForge", "agentBlackBox", "solLedger"],
+      "properties": {
+        "evidenceForge": { "$ref": "#/$defs/repositoryState" },
+        "agentBlackBox": { "$ref": "#/$defs/repositoryState" },
+        "solLedger": { "$ref": "#/$defs/repositoryState" }
+      }
+    },
+    "integrity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["algorithm", "reportSha256"],
+      "properties": {
+        "algorithm": { "const": "sha256-jcs" },
+        "reportSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+      }
+    }
+  },
+  "$defs": {
+    "repositoryState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["commit", "clean"],
+      "properties": {
+        "commit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+        "clean": { "type": "boolean" }
+      }
+    }
+  }
+}

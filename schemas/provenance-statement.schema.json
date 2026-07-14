@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evidence-forge.local/schema/provenance-statement/1",
+  "title": "Evidence Forge Provenance Statement",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "kind", "package", "revisions", "artifacts", "assurance", "integrity"],
+  "properties": {
+    "version": { "const": 1 },
+    "kind": { "const": "EvidenceForgeProvenanceStatement" },
+    "package": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version", "packageSha256"],
+      "properties": {
+        "name": { "const": "evidence-forge" },
+        "version": { "type": "string", "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(-[0-9A-Za-z.-]+)?$" },
+        "packageSha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "revisions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["evidenceForge", "agentBlackBox", "solLedger"],
+      "properties": {
+        "evidenceForge": { "$ref": "#/$defs/revision" },
+        "agentBlackBox": { "$ref": "#/$defs/revision" },
+        "solLedger": { "$ref": "#/$defs/revision" }
+      }
+    },
+    "artifacts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["eventCount", "bundleSha256", "manifestSha256", "receiptSha256"],
+      "properties": {
+        "eventCount": { "const": 4 },
+        "bundleSha256": { "$ref": "#/$defs/sha256" },
+        "manifestSha256": { "$ref": "#/$defs/sha256" },
+        "receiptSha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "assurance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["signature", "timestamp"],
+      "properties": {
+        "signature": { "enum": ["none", "ed25519"] },
+        "timestamp": { "const": "not-attested" }
+      }
+    },
+    "integrity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["algorithm", "statementSha256"],
+      "properties": {
+        "algorithm": { "const": "sha256-jcs" },
+        "statementSha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "signature": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["algorithm", "keyId", "statementSha256", "signatureBase64"],
+      "properties": {
+        "algorithm": { "const": "ed25519" },
+        "keyId": { "$ref": "#/$defs/sha256" },
+        "statementSha256": { "$ref": "#/$defs/sha256" },
+        "signatureBase64": { "type": "string", "pattern": "^[A-Za-z0-9+/]{86}==$" }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "assurance": { "properties": { "signature": { "const": "ed25519" } } } } },
+      "then": { "required": ["signature"] },
+      "else": { "not": { "required": ["signature"] } }
+    }
+  ],
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "revision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["commit", "clean"],
+      "properties": {
+        "commit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+        "clean": { "const": true }
+      }
+    }
+  }
+}

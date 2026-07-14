@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evidence-forge.local/schemas/capability-compatibility-receipt.schema.json",
+  "title": "Evidence Forge Capability Compatibility Receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "kind", "outcome", "previous", "current", "changes", "versionPolicy", "assurance", "integrity"],
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "versionRef": {
+      "type": "object", "additionalProperties": false,
+      "required": ["packageVersion", "manifestSha256"],
+      "properties": {
+        "packageVersion": { "type": "string", "maxLength": 128 },
+        "manifestSha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "binaryList": {
+      "type": "array", "maxItems": 64, "uniqueItems": true,
+      "items": { "type": "string", "maxLength": 128, "pattern": "^evidence-forge(?:-[a-z-]+)?$" }
+    },
+    "schemaList": {
+      "type": "array", "maxItems": 32, "uniqueItems": true,
+      "items": { "type": "string", "maxLength": 128, "pattern": "^schemas/[a-z-]+\\.schema\\.json$" }
+    }
+  },
+  "properties": {
+    "version": { "const": 1 },
+    "kind": { "const": "EvidenceForgeCapabilityCompatibilityReceipt" },
+    "outcome": { "enum": ["compatible", "breaking"] },
+    "previous": { "$ref": "#/$defs/versionRef" },
+    "current": { "$ref": "#/$defs/versionRef" },
+    "changes": {
+      "type": "object", "additionalProperties": false,
+      "required": ["addedBinaries", "removedBinaries", "addedSchemas", "removedSchemas", "changedSchemas", "errorContractChanged"],
+      "properties": {
+        "addedBinaries": { "$ref": "#/$defs/binaryList" },
+        "removedBinaries": { "$ref": "#/$defs/binaryList" },
+        "addedSchemas": { "$ref": "#/$defs/schemaList" },
+        "removedSchemas": { "$ref": "#/$defs/schemaList" },
+        "changedSchemas": { "$ref": "#/$defs/schemaList" },
+        "errorContractChanged": { "type": "boolean" }
+      }
+    },
+    "versionPolicy": {
+      "type": "object", "additionalProperties": false,
+      "required": ["requiredBump", "actualBump", "satisfied"],
+      "properties": {
+        "requiredBump": { "enum": ["major", "minor", "patch"] },
+        "actualBump": { "enum": ["major", "minor", "patch"] },
+        "satisfied": { "type": "boolean" }
+      }
+    },
+    "assurance": {
+      "type": "object", "additionalProperties": false, "required": ["timestamp"],
+      "properties": { "timestamp": { "const": "not-attested" } }
+    },
+    "integrity": {
+      "type": "object", "additionalProperties": false, "required": ["algorithm", "receiptSha256"],
+      "properties": {
+        "algorithm": { "const": "sha256-jcs" },
+        "receiptSha256": { "$ref": "#/$defs/sha256" }
+      }
+    }
+  }
+}

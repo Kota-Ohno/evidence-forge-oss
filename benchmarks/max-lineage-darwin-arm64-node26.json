@@ -1,0 +1,53 @@
+{
+  "version": 2,
+  "kind": "EvidenceForgeMaximumLineageBenchmark",
+  "outcome": "verified",
+  "sampleCount": 3,
+  "scale": {
+    "packetCount": 100,
+    "transitionCount": 99,
+    "lineageBytes": 552876
+  },
+  "checkpoints": [
+    {
+      "packetCount": 10,
+      "transitionCount": 9,
+      "lineageBytes": 55976,
+      "cumulativeAppendMilliseconds": 94.18,
+      "verificationMilliseconds": 4.68
+    },
+    {
+      "packetCount": 25,
+      "transitionCount": 24,
+      "lineageBytes": 138793,
+      "cumulativeAppendMilliseconds": 434.8,
+      "verificationMilliseconds": 10.66
+    },
+    {
+      "packetCount": 50,
+      "transitionCount": 49,
+      "lineageBytes": 276818,
+      "cumulativeAppendMilliseconds": 1461.51,
+      "verificationMilliseconds": 20.64
+    },
+    {
+      "packetCount": 100,
+      "transitionCount": 99,
+      "lineageBytes": 552876,
+      "cumulativeAppendMilliseconds": 5113.28,
+      "verificationMilliseconds": 41.4
+    }
+  ],
+  "runtime": {
+    "node": "v26.0.0",
+    "platform": "darwin",
+    "architecture": "arm64"
+  },
+  "assurance": {
+    "correctnessChecked": true,
+    "overflowRejected": true,
+    "timingStatistic": "median",
+    "timingThresholdEnforced": false,
+    "temporaryArtifactsRemoved": true
+  }
+}

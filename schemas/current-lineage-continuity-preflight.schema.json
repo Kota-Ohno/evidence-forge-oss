@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evidence-forge.local/schemas/current-lineage-continuity-preflight.schema.json",
+  "title": "Evidence Forge current lineage continuity preflight",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "kind", "outcome", "olderVersion", "newerVersion", "currentLineageSha256", "currentPacketCount", "currentTransitionCount", "continuityReceiptSha256", "currentLineageReaudited", "packsReexecuted", "timestampAttested"],
+  "properties": {
+    "version": { "const": 1 },
+    "kind": { "const": "EvidenceForgeCurrentLineageContinuityPreflight" },
+    "outcome": { "const": "verified" },
+    "olderVersion": { "$ref": "#/$defs/semver" },
+    "newerVersion": { "$ref": "#/$defs/semver" },
+    "currentLineageSha256": { "$ref": "#/$defs/sha256" },
+    "currentPacketCount": { "type": "integer", "minimum": 3, "maximum": 100 },
+    "currentTransitionCount": { "type": "integer", "minimum": 2, "maximum": 99 },
+    "continuityReceiptSha256": { "$ref": "#/$defs/sha256" },
+    "currentLineageReaudited": { "const": true },
+    "packsReexecuted": { "const": false },
+    "timestampAttested": { "const": false }
+  },
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "semver": { "type": "string", "maxLength": 128, "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$" }
+  }
+}

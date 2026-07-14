@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evidence-forge.local/schemas/packed-workspace-acceptance-receipt.schema.json",
+  "title": "Evidence Forge packed workspace acceptance receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "kind", "outcome", "package", "archives", "coverage", "checks", "assurance", "integrity"],
+  "properties": {
+    "version": { "const": 1 },
+    "kind": { "const": "EvidenceForgePackedWorkspaceAcceptanceReceipt" },
+    "outcome": { "const": "verified" },
+    "package": {
+      "type": "object", "additionalProperties": false,
+      "required": ["version", "packSha256", "capabilitiesManifestSha256", "coverageContractSchemaSha256"],
+      "properties": {
+        "version": { "type": "string", "maxLength": 128, "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?$" },
+        "packSha256": { "$ref": "#/$defs/sha256" },
+        "capabilitiesManifestSha256": { "$ref": "#/$defs/sha256" },
+        "coverageContractSchemaSha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "archives": {
+      "type": "object", "additionalProperties": false,
+      "required": ["releaseIndexSha256", "archiveAuditReceiptSha256", "upgradeHistoryIndexSha256", "upgradeHistoryAuditReceiptSha256"],
+      "properties": {
+        "releaseIndexSha256": { "$ref": "#/$defs/sha256" },
+        "archiveAuditReceiptSha256": { "$ref": "#/$defs/sha256" },
+        "upgradeHistoryIndexSha256": { "$ref": "#/$defs/sha256" },
+        "upgradeHistoryAuditReceiptSha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "coverage": {
+      "type": "object", "additionalProperties": false,
+      "required": ["releaseCount", "transitionCount", "firstRelease", "latestRelease"],
+      "properties": {
+        "releaseCount": { "type": "integer", "minimum": 2, "maximum": 256 },
+        "transitionCount": { "type": "integer", "minimum": 1, "maximum": 255 },
+        "firstRelease": { "$ref": "#/$defs/semver" },
+        "latestRelease": { "$ref": "#/$defs/semver" }
+      }
+    },
+    "checks": {
+      "type": "object", "additionalProperties": false,
+      "required": ["validWorkspaceVerified", "partialConfigurationRejected", "mismatchedAuditRejected", "middleVersionRejected", "middlePackHeadRejected", "laggingHistoryRejected", "loopbackWorkspaceVerified"],
+      "properties": {
+        "validWorkspaceVerified": { "const": true },
+        "partialConfigurationRejected": { "const": true },
+        "mismatchedAuditRejected": { "const": true },
+        "middleVersionRejected": { "const": true },
+        "middlePackHeadRejected": { "const": true },
+        "laggingHistoryRejected": { "const": true },
+        "loopbackWorkspaceVerified": { "const": true }
+      }
+    },
+    "assurance": {
+      "type": "object", "additionalProperties": false, "required": ["timestamp"],
+      "properties": { "timestamp": { "const": "not-attested" } }
+    },
+    "integrity": {
+      "type": "object", "additionalProperties": false, "required": ["algorithm", "receiptSha256"],
+      "properties": { "algorithm": { "const": "sha256-jcs" }, "receiptSha256": { "$ref": "#/$defs/sha256" } }
+    }
+  },
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "semver": { "type": "string", "maxLength": 128, "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?$" }
+  }
+}

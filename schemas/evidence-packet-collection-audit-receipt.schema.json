@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evidence-forge.local/schemas/evidence-packet-collection-audit-receipt.schema.json",
+  "title": "Evidence Forge Evidence packet collection audit receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "kind", "outcome", "index", "collection", "assurance", "integrity"],
+  "properties": {
+    "version": { "const": 1 },
+    "kind": { "const": "EvidenceForgeEvidencePacketCollectionAuditReceipt" },
+    "outcome": { "const": "verified" },
+    "index": {
+      "type": "object", "additionalProperties": false, "required": ["indexSha256", "entryCount"],
+      "properties": {
+        "indexSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "entryCount": { "type": "integer", "minimum": 1, "maximum": 100 }
+      }
+    },
+    "collection": {
+      "type": "object", "additionalProperties": false,
+      "required": ["verifiedPacketCount", "firstPacketSha256", "lastPacketSha256", "totalSourceBytes"],
+      "properties": {
+        "verifiedPacketCount": { "type": "integer", "minimum": 1, "maximum": 100 },
+        "firstPacketSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "lastPacketSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "totalSourceBytes": { "type": "integer", "minimum": 0, "maximum": 67108864 }
+      }
+    },
+    "assurance": {
+      "type": "object", "additionalProperties": false, "required": ["timestamp"],
+      "properties": { "timestamp": { "const": "not-attested" } }
+    },
+    "integrity": {
+      "type": "object", "additionalProperties": false, "required": ["algorithm", "auditSha256"],
+      "properties": {
+        "algorithm": { "const": "sha256-jcs" },
+        "auditSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+      }
+    }
+  }
+}

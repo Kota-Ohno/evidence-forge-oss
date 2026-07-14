@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evidence-forge.local/schemas/offline-installed-self-test.schema.json",
+  "title": "Evidence Forge offline installed self-test",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "kind", "outcome", "packageVersion", "captureVerified", "promotionVerified", "packetRoundTripVerified", "capabilitiesVerified", "networkAccessed", "databaseOpened", "listenerOpened", "temporaryBytesRetained", "timestampAttested"],
+  "properties": {
+    "version": { "const": 1 },
+    "kind": { "const": "EvidenceForgeOfflineInstalledSelfTest" },
+    "outcome": { "const": "verified" },
+    "packageVersion": { "type": "string", "maxLength": 128, "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?$" },
+    "captureVerified": { "const": true },
+    "promotionVerified": { "const": true },
+    "packetRoundTripVerified": { "const": true },
+    "capabilitiesVerified": { "const": true },
+    "networkAccessed": { "const": false },
+    "databaseOpened": { "const": false },
+    "listenerOpened": { "const": false },
+    "temporaryBytesRetained": { "const": false },
+    "timestampAttested": { "const": false }
+  }
+}

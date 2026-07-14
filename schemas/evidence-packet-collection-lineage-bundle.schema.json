@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evidence-forge.local/schemas/evidence-packet-collection-lineage-bundle.schema.json",
+  "title": "Evidence Forge portable packet collection lineage bundle",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "kind", "collectionBundle", "historyIndex", "historyAuditReceipt", "transitions", "assurance", "integrity"],
+  "properties": {
+    "version": { "const": 1 },
+    "kind": { "const": "EvidenceForgeEvidencePacketCollectionLineageBundle" },
+    "collectionBundle": { "$ref": "evidence-packet-collection-bundle.schema.json" },
+    "historyIndex": { "$ref": "evidence-packet-transition-history-index.schema.json" },
+    "historyAuditReceipt": { "$ref": "evidence-packet-transition-history-audit-receipt.schema.json" },
+    "transitions": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 99,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "receipt"],
+        "properties": {
+          "name": { "type": "string", "pattern": "^transitions/[0-9a-f]{64}\\.json$" },
+          "receipt": { "$ref": "evidence-packet-collection-transition-audit-receipt.schema.json" }
+        }
+      }
+    },
+    "assurance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["timestamp"],
+      "properties": { "timestamp": { "const": "not-attested" } }
+    },
+    "integrity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["algorithm", "lineageSha256"],
+      "properties": {
+        "algorithm": { "const": "sha256-jcs" },
+        "lineageSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+      }
+    }
+  }
+}

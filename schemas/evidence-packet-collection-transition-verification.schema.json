@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evidence-forge.local/schemas/evidence-packet-collection-transition-verification.schema.json",
+  "title": "Evidence Forge Evidence packet collection transition verification",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version", "kind", "outcome", "previousBundleSha256", "nextBundleSha256",
+    "previousPacketCount", "nextPacketCount", "appendedPacketCount", "firstSequence",
+    "lastSequence", "firstPacketSha256", "lastPacketSha256", "auditSha256",
+    "bundlesReaudited", "timestampAttested"
+  ],
+  "properties": {
+    "version": { "const": 1 },
+    "kind": { "const": "EvidenceForgeEvidencePacketCollectionTransitionVerification" },
+    "outcome": { "const": "verified" },
+    "previousBundleSha256": { "$ref": "#/$defs/hash" },
+    "nextBundleSha256": { "$ref": "#/$defs/hash" },
+    "previousPacketCount": { "type": "integer", "minimum": 1, "maximum": 99 },
+    "nextPacketCount": { "type": "integer", "minimum": 2, "maximum": 100 },
+    "appendedPacketCount": { "type": "integer", "minimum": 1, "maximum": 99 },
+    "firstSequence": { "type": "integer", "minimum": 2, "maximum": 100 },
+    "lastSequence": { "type": "integer", "minimum": 2, "maximum": 100 },
+    "firstPacketSha256": { "$ref": "#/$defs/hash" },
+    "lastPacketSha256": { "$ref": "#/$defs/hash" },
+    "auditSha256": { "$ref": "#/$defs/hash" },
+    "bundlesReaudited": { "const": false },
+    "timestampAttested": { "const": false }
+  },
+  "$defs": { "hash": { "type": "string", "pattern": "^[0-9a-f]{64}$" } }
+}

@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evidence-forge.local/schemas/release-evidence-index.schema.json",
+  "title": "Evidence Forge archival release evidence index",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "kind", "entries", "integrity"],
+  "properties": {
+    "version": { "const": 1 },
+    "kind": { "const": "EvidenceForgeReleaseEvidenceIndex" },
+    "entries": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 256,
+      "items": { "$ref": "#/$defs/entry" }
+    },
+    "integrity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["algorithm", "indexSha256"],
+      "properties": {
+        "algorithm": { "const": "sha256-jcs" },
+        "indexSha256": { "$ref": "#/$defs/sha256" }
+      }
+    }
+  },
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "sequence", "releaseVersion", "packageSha256", "packSha256", "statementSha256", "provenanceKeyId", "evidenceForgeRevision", "artifacts", "previousEntrySha256", "entrySha256"],
+      "properties": {
+        "version": { "const": 1 },
+        "sequence": { "type": "integer", "minimum": 1, "maximum": 256 },
+        "releaseVersion": { "type": "string", "maxLength": 128, "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?$" },
+        "packageSha256": { "$ref": "#/$defs/sha256" },
+        "packSha256": { "$ref": "#/$defs/sha256" },
+        "statementSha256": { "$ref": "#/$defs/sha256" },
+        "provenanceKeyId": { "$ref": "#/$defs/sha256" },
+        "evidenceForgeRevision": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+        "artifacts": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["bundleSha256", "manifestSha256", "receiptSha256"],
+          "properties": {
+            "bundleSha256": { "$ref": "#/$defs/sha256" },
+            "manifestSha256": { "$ref": "#/$defs/sha256" },
+            "receiptSha256": { "$ref": "#/$defs/sha256" }
+          }
+        },
+        "previousEntrySha256": { "oneOf": [{ "$ref": "#/$defs/sha256" }, { "type": "null" }] },
+        "entrySha256": { "$ref": "#/$defs/sha256" }
+      }
+    }
+  }
+}

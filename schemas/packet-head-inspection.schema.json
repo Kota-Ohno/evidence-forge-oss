@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evidence-forge.local/schemas/packet-head-inspection.schema.json",
+  "title": "Evidence Forge portable packet head inspection",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "kind", "artifactKind", "algorithm", "embeddedPacketSha256", "computedPacketSha256", "rawFileSha256", "embeddedHeadMatchesPayload", "assurance"],
+  "properties": {
+    "version": { "const": 1 },
+    "kind": { "const": "EvidenceForgePacketHeadInspection" },
+    "artifactKind": { "const": "PortableEvidencePacket" },
+    "algorithm": { "const": "sha256-jcs" },
+    "embeddedPacketSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "computedPacketSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "rawFileSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "embeddedHeadMatchesPayload": { "type": "boolean" },
+    "assurance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["packetVerified", "sourceBytesVerified", "promotionReplayed", "externalAnchorChecked", "timestampAttested"],
+      "properties": {
+        "packetVerified": { "const": false },
+        "sourceBytesVerified": { "const": false },
+        "promotionReplayed": { "const": false },
+        "externalAnchorChecked": { "const": false },
+        "timestampAttested": { "const": false }
+      }
+    }
+  }
+}

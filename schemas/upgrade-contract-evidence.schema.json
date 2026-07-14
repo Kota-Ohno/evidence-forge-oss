@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evidence-forge.local/schemas/upgrade-contract-evidence.schema.json",
+  "title": "Evidence Forge Upgrade Contract Evidence",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "kind", "anchors", "manifests", "receipt", "assurance", "integrity"],
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+  },
+  "properties": {
+    "version": { "const": 1 },
+    "kind": { "const": "EvidenceForgeUpgradeContractEvidence" },
+    "anchors": {
+      "type": "object", "additionalProperties": false,
+      "required": ["previousManifestSha256", "currentManifestSha256", "receiptSha256"],
+      "properties": {
+        "previousManifestSha256": { "$ref": "#/$defs/sha256" },
+        "currentManifestSha256": { "$ref": "#/$defs/sha256" },
+        "receiptSha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "manifests": {
+      "type": "object", "additionalProperties": false,
+      "required": ["previous", "current"],
+      "properties": {
+        "previous": { "$ref": "cli-capabilities.schema.json" },
+        "current": { "$ref": "cli-capabilities.schema.json" }
+      }
+    },
+    "receipt": { "$ref": "capability-compatibility-receipt.schema.json" },
+    "assurance": {
+      "type": "object", "additionalProperties": false, "required": ["timestamp"],
+      "properties": { "timestamp": { "const": "not-attested" } }
+    },
+    "integrity": {
+      "type": "object", "additionalProperties": false, "required": ["algorithm", "evidenceSha256"],
+      "properties": {
+        "algorithm": { "const": "sha256-jcs" },
+        "evidenceSha256": { "$ref": "#/$defs/sha256" }
+      }
+    }
+  }
+}

@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.evidence-forge/
+coverage/
+work/
+.env
+.env.*
+!.env.example
+.DS_Store
+HANDOFF.md

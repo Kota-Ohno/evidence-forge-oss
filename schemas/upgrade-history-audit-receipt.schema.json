@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evidence-forge.local/schemas/upgrade-history-audit-receipt.schema.json",
+  "title": "Evidence Forge Upgrade History Audit Receipt",
+  "type": "object", "additionalProperties": false,
+  "required": ["version", "kind", "outcome", "index", "collection", "assurance", "integrity"],
+  "$defs": { "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" } },
+  "properties": {
+    "version": { "const": 1 },
+    "kind": { "const": "EvidenceForgeUpgradeHistoryAuditReceipt" },
+    "outcome": { "const": "verified" },
+    "index": {
+      "type": "object", "additionalProperties": false, "required": ["indexSha256", "entryCount"],
+      "properties": { "indexSha256": { "$ref": "#/$defs/sha256" }, "entryCount": { "type": "integer", "minimum": 1, "maximum": 256 } }
+    },
+    "collection": {
+      "type": "object", "additionalProperties": false,
+      "required": ["verifiedBindingCount", "firstRelease", "latestRelease"],
+      "properties": {
+        "verifiedBindingCount": { "type": "integer", "minimum": 1, "maximum": 256 },
+        "firstRelease": { "type": "string", "pattern": "^(?:0|[1-9]\\d*)\\.(?:0|[1-9]\\d*)\\.(?:0|[1-9]\\d*)(?:-[0-9A-Za-z.-]+)?$", "maxLength": 128 },
+        "latestRelease": { "type": "string", "pattern": "^(?:0|[1-9]\\d*)\\.(?:0|[1-9]\\d*)\\.(?:0|[1-9]\\d*)(?:-[0-9A-Za-z.-]+)?$", "maxLength": 128 }
+      }
+    },
+    "assurance": { "type": "object", "additionalProperties": false, "required": ["timestamp"], "properties": { "timestamp": { "const": "not-attested" } } },
+    "integrity": {
+      "type": "object", "additionalProperties": false, "required": ["algorithm", "auditSha256"],
+      "properties": { "algorithm": { "const": "sha256-jcs" }, "auditSha256": { "$ref": "#/$defs/sha256" } }
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evidence-forge.local/schemas/review-workspace-acceptance.schema.json",
+  "title": "Evidence Forge Review Workspace acceptance status",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "kind", "outcome", "packageVersion", "releaseCount", "transitionCount", "firstRelease", "latestRelease", "receiptSha256", "timestampAttested"],
+  "properties": {
+    "version": { "const": 1 },
+    "kind": { "const": "EvidenceForgeReviewWorkspaceAcceptance" },
+    "outcome": { "const": "verified" },
+    "packageVersion": { "$ref": "#/$defs/semver" },
+    "releaseCount": { "type": "integer", "minimum": 2, "maximum": 256 },
+    "transitionCount": { "type": "integer", "minimum": 1, "maximum": 255 },
+    "firstRelease": { "$ref": "#/$defs/semver" },
+    "latestRelease": { "$ref": "#/$defs/semver" },
+    "receiptSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "timestampAttested": { "const": false }
+  },
+  "$defs": {
+    "semver": { "type": "string", "maxLength": 128, "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?$" }
+  }
+}

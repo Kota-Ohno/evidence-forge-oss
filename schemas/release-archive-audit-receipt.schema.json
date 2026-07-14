@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evidence-forge.local/schemas/release-archive-audit-receipt.schema.json",
+  "title": "Evidence Forge release archive audit receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "kind", "outcome", "index", "archive", "signatures", "trust", "assurance", "integrity"],
+  "properties": {
+    "version": { "const": 1 },
+    "kind": { "const": "EvidenceForgeReleaseArchiveAuditReceipt" },
+    "outcome": { "const": "verified" },
+    "index": {
+      "type": "object", "additionalProperties": false, "required": ["indexSha256", "entryCount"],
+      "properties": { "indexSha256": { "$ref": "#/$defs/sha256" }, "entryCount": { "$ref": "#/$defs/count" } }
+    },
+    "archive": {
+      "type": "object", "additionalProperties": false, "required": ["verifiedPackCount", "firstRelease", "latestRelease"],
+      "properties": {
+        "verifiedPackCount": { "$ref": "#/$defs/count" },
+        "firstRelease": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "latestRelease": { "type": "string", "minLength": 1, "maxLength": 128 }
+      }
+    },
+    "signatures": {
+      "type": "object", "additionalProperties": false, "required": ["provenanceVerifiedCount", "reviewVerifiedCount"],
+      "properties": {
+        "provenanceVerifiedCount": { "$ref": "#/$defs/count" },
+        "reviewVerifiedCount": { "type": "integer", "minimum": 1, "maximum": 8192 }
+      }
+    },
+    "trust": {
+      "type": "object", "additionalProperties": false, "required": ["manualCount", "rotationHistoryCount"],
+      "properties": {
+        "manualCount": { "type": "integer", "minimum": 0, "maximum": 256 },
+        "rotationHistoryCount": { "type": "integer", "minimum": 0, "maximum": 256 }
+      }
+    },
+    "assurance": {
+      "type": "object", "additionalProperties": false, "required": ["timestamp"],
+      "properties": { "timestamp": { "const": "not-attested" } }
+    },
+    "integrity": {
+      "type": "object", "additionalProperties": false, "required": ["algorithm", "auditSha256"],
+      "properties": { "algorithm": { "const": "sha256-jcs" }, "auditSha256": { "$ref": "#/$defs/sha256" } }
+    }
+  },
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "count": { "type": "integer", "minimum": 1, "maximum": 256 }
+  }
+}

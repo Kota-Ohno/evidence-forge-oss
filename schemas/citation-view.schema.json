@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evidence-forge.local/schemas/citation-view.schema.json",
+  "title": "Evidence Forge derived citation view",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["kind", "transformation", "sourceSha256", "mediaType", "sha256", "byteLength"],
+  "properties": {
+    "kind": { "const": "DerivedCitationView" },
+    "transformation": { "const": "evidence-forge/html-text@1" },
+    "sourceSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "mediaType": { "const": "text/plain; charset=utf-8" },
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "byteLength": { "type": "integer", "minimum": 0, "maximum": 16777216 }
+  }
+}

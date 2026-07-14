@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evidence-forge.local/schemas/release-upgrade-binding-receipt.schema.json",
+  "title": "Evidence Forge Release Upgrade Binding Receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "kind", "releases", "upgradeEvidence", "binding", "assurance", "integrity"],
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "release": {
+      "type": "object", "additionalProperties": false,
+      "required": ["packageVersion", "packSha256", "packageSha256"],
+      "properties": {
+        "packageVersion": { "type": "string", "pattern": "^(?:0|[1-9]\\d*)\\.(?:0|[1-9]\\d*)\\.(?:0|[1-9]\\d*)(?:-[0-9A-Za-z.-]+)?$", "maxLength": 128 },
+        "packSha256": { "$ref": "#/$defs/sha256" },
+        "packageSha256": { "$ref": "#/$defs/sha256" }
+      }
+    }
+  },
+  "properties": {
+    "version": { "const": 1 },
+    "kind": { "const": "EvidenceForgeReleaseUpgradeBindingReceipt" },
+    "releases": {
+      "type": "object", "additionalProperties": false, "required": ["previous", "current"],
+      "properties": { "previous": { "$ref": "#/$defs/release" }, "current": { "$ref": "#/$defs/release" } }
+    },
+    "upgradeEvidence": {
+      "type": "object", "additionalProperties": false,
+      "required": ["evidenceSha256", "receiptSha256", "previousManifestSha256", "currentManifestSha256"],
+      "properties": {
+        "evidenceSha256": { "$ref": "#/$defs/sha256" },
+        "receiptSha256": { "$ref": "#/$defs/sha256" },
+        "previousManifestSha256": { "$ref": "#/$defs/sha256" },
+        "currentManifestSha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "binding": {
+      "type": "object", "additionalProperties": false, "required": ["manifestsReproduced", "lifecycleScripts"],
+      "properties": { "manifestsReproduced": { "const": true }, "lifecycleScripts": { "const": "disabled" } }
+    },
+    "assurance": {
+      "type": "object", "additionalProperties": false, "required": ["timestamp", "packageCodeExecution"],
+      "properties": { "timestamp": { "const": "not-attested" }, "packageCodeExecution": { "const": "capabilities-binary" } }
+    },
+    "integrity": {
+      "type": "object", "additionalProperties": false, "required": ["algorithm", "bindingSha256"],
+      "properties": { "algorithm": { "const": "sha256-jcs" }, "bindingSha256": { "$ref": "#/$defs/sha256" } }
+    }
+  }
+}

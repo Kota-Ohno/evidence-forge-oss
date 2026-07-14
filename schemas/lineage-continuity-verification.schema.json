@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evidence-forge.local/schemas/lineage-continuity-verification.schema.json",
+  "title": "Evidence Forge lineage continuity verification",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "kind", "outcome", "olderVersion", "newerVersion", "olderPackSha256", "newerPackSha256", "previousLineageSha256", "nextLineageSha256", "previousPacketCount", "nextPacketCount", "previousTransitionCount", "nextTransitionCount", "receiptSha256", "packsReexecuted", "lineagesReaudited", "timestampAttested"],
+  "properties": {
+    "version": { "const": 1 },
+    "kind": { "const": "EvidenceForgeLineageContinuityVerification" },
+    "outcome": { "const": "verified" },
+    "olderVersion": { "$ref": "#/$defs/semver" },
+    "newerVersion": { "$ref": "#/$defs/semver" },
+    "olderPackSha256": { "$ref": "#/$defs/sha256" },
+    "newerPackSha256": { "$ref": "#/$defs/sha256" },
+    "previousLineageSha256": { "$ref": "#/$defs/sha256" },
+    "nextLineageSha256": { "$ref": "#/$defs/sha256" },
+    "previousPacketCount": { "type": "integer", "minimum": 2, "maximum": 99 },
+    "nextPacketCount": { "type": "integer", "minimum": 3, "maximum": 100 },
+    "previousTransitionCount": { "type": "integer", "minimum": 1, "maximum": 98 },
+    "nextTransitionCount": { "type": "integer", "minimum": 2, "maximum": 99 },
+    "receiptSha256": { "$ref": "#/$defs/sha256" },
+    "packsReexecuted": { "const": false },
+    "lineagesReaudited": { "const": false },
+    "timestampAttested": { "const": false }
+  },
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "semver": { "type": "string", "maxLength": 128, "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$" }
+  }
+}

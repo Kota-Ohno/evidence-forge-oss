@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evidence-forge.local/schemas/review-evidence-packet.schema.json",
+  "title": "Evidence Forge packet review detail",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "status", "quote", "prefix", "suffix", "observedAt", "availableAt", "capturedAt", "sha256", "byteLength", "mediaType", "source", "failureCode", "failureMessage", "attempts", "context", "provenance", "citationView", "evidence"],
+  "properties": {
+    "id": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "status": { "const": "verified" },
+    "quote": { "type": "string", "minLength": 1, "maxLength": 1048576 },
+    "prefix": { "type": "string", "maxLength": 32 },
+    "suffix": { "type": "string", "maxLength": 32 },
+    "observedAt": { "type": "string", "format": "date-time", "maxLength": 64 },
+    "availableAt": { "type": "string", "format": "date-time", "maxLength": 64 },
+    "capturedAt": { "type": "string", "format": "date-time", "maxLength": 64 },
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "byteLength": { "type": "integer", "minimum": 0, "maximum": 16777216 },
+    "mediaType": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "source": { "const": "持ち運び用の検証済み記録" },
+    "failureCode": { "type": "null" },
+    "failureMessage": { "type": "null" },
+    "attempts": {
+      "type": "array", "minItems": 1, "maxItems": 1,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["attemptedAt", "outcome", "failureCode", "failureMessage"],
+        "properties": {
+          "attemptedAt": { "type": "string", "format": "date-time", "maxLength": 64 },
+          "outcome": { "const": "verified" },
+          "failureCode": { "type": "null" },
+          "failureMessage": { "type": "null" }
+        }
+      }
+    },
+    "context": {
+      "type": "object", "additionalProperties": false,
+      "required": ["integrity", "before", "exact", "after"],
+      "properties": {
+        "integrity": { "const": "verified" },
+        "before": { "type": "string", "maxLength": 280 },
+        "exact": { "type": "string", "minLength": 1, "maxLength": 1048576 },
+        "after": { "type": "string", "maxLength": 280 }
+      }
+    },
+    "provenance": {
+      "type": "object", "additionalProperties": false,
+      "required": ["kind", "integrity", "assurance", "packetSha256", "timestampAttested"],
+      "properties": {
+        "kind": { "const": "packet" },
+        "integrity": { "const": "verified" },
+        "assurance": { "const": "externally-pinned-packet-head" },
+        "packetSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "timestampAttested": { "const": false }
+      }
+    },
+    "citationView": { "anyOf": [{ "type": "null" }, { "$ref": "citation-view.schema.json" }] },
+    "evidence": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "verifiedAt", "promotionSequence", "recordSha256"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "verifiedAt": { "type": "string", "format": "date-time", "maxLength": 64 },
+        "promotionSequence": { "type": "null" },
+        "recordSha256": { "type": "null" }
+      }
+    }
+  }
+}

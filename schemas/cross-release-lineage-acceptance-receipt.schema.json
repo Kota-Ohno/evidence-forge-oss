@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evidence-forge.local/schemas/cross-release-lineage-acceptance-receipt.schema.json",
+  "title": "Evidence Forge cross-release lineage acceptance receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "kind", "outcome", "releases", "lineage", "checks", "assurance", "integrity"],
+  "properties": {
+    "version": { "const": 1 },
+    "kind": { "const": "EvidenceForgeCrossReleaseLineageAcceptanceReceipt" },
+    "outcome": { "const": "verified" },
+    "releases": {
+      "type": "object", "additionalProperties": false, "required": ["older", "newer"],
+      "properties": {
+        "older": { "$ref": "#/$defs/release" },
+        "newer": { "$ref": "#/$defs/release" }
+      }
+    },
+    "lineage": {
+      "type": "object", "additionalProperties": false,
+      "required": ["previousSha256", "nextSha256", "previousPacketCount", "nextPacketCount", "previousTransitionCount", "nextTransitionCount"],
+      "properties": {
+        "previousSha256": { "$ref": "#/$defs/sha256" },
+        "nextSha256": { "$ref": "#/$defs/sha256" },
+        "previousPacketCount": { "type": "integer", "minimum": 2, "maximum": 99 },
+        "nextPacketCount": { "type": "integer", "minimum": 3, "maximum": 100 },
+        "previousTransitionCount": { "type": "integer", "minimum": 1, "maximum": 98 },
+        "nextTransitionCount": { "type": "integer", "minimum": 2, "maximum": 99 }
+      }
+    },
+    "checks": {
+      "type": "object", "additionalProperties": false,
+      "required": ["offlineInstallVerified", "olderCreationVerified", "newerVerificationVerified", "newerDirectAppendVerified", "newerLoopbackReviewVerified", "priorRecordsPreserved", "inputsImmutable", "stalePackHeadRejected", "staleLineageHeadRejected", "stalePacketHeadRejected", "outputCollisionRejected"],
+      "properties": {
+        "offlineInstallVerified": { "const": true },
+        "olderCreationVerified": { "const": true },
+        "newerVerificationVerified": { "const": true },
+        "newerDirectAppendVerified": { "const": true },
+        "newerLoopbackReviewVerified": { "const": true },
+        "priorRecordsPreserved": { "const": true },
+        "inputsImmutable": { "const": true },
+        "stalePackHeadRejected": { "const": true },
+        "staleLineageHeadRejected": { "const": true },
+        "stalePacketHeadRejected": { "const": true },
+        "outputCollisionRejected": { "const": true }
+      }
+    },
+    "assurance": {
+      "type": "object", "additionalProperties": false, "required": ["timestamp"],
+      "properties": { "timestamp": { "const": "not-attested" } }
+    },
+    "integrity": {
+      "type": "object", "additionalProperties": false, "required": ["algorithm", "receiptSha256"],
+      "properties": { "algorithm": { "const": "sha256-jcs" }, "receiptSha256": { "$ref": "#/$defs/sha256" } }
+    }
+  },
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "semver": { "type": "string", "maxLength": 128, "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$" },
+    "release": {
+      "type": "object", "additionalProperties": false, "required": ["version", "packSha256"],
+      "properties": { "version": { "$ref": "#/$defs/semver" }, "packSha256": { "$ref": "#/$defs/sha256" } }
+    }
+  }
+}

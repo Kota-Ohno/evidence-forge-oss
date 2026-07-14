@@ -1,0 +1,99 @@
+{
+  "name": "evidence-forge",
+  "version": "6.3.1",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "types": "dist/src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/src/index.d.ts",
+      "import": "./dist/src/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "schemas",
+    "docs/OPERATOR.md",
+    "docs/TRUST-AUDIT.md",
+    "CHANGELOG.md",
+    "LICENSE",
+    "README.md"
+  ],
+  "bin": {
+    "evidence-forge": "dist/src/cli.js",
+    "evidence-forge-key-id": "dist/src/key-id-cli.js",
+    "evidence-forge-trust-manifest": "dist/src/trust-manifest-cli.js",
+    "evidence-forge-provenance": "dist/src/provenance-statement-cli.js",
+    "evidence-forge-release-pack": "dist/src/release-evidence-pack-cli.js",
+    "evidence-forge-release-index": "dist/src/release-evidence-index-cli.js",
+    "evidence-forge-audit-archive": "dist/src/release-archive-audit-cli.js",
+    "evidence-forge-sign-report": "dist/src/sign-report-cli.js",
+    "evidence-forge-bundle-report": "dist/src/bundle-report-cli.js",
+    "evidence-forge-rotate-trust": "dist/src/rotate-trust-cli.js",
+    "evidence-forge-verify-review": "dist/src/verify-review-cli.js",
+    "evidence-forge-upgrade-evidence": "dist/src/upgrade-contract-evidence-cli.js",
+    "evidence-forge-bind-upgrade": "dist/src/release-upgrade-binding-cli.js",
+    "evidence-forge-upgrade-index": "dist/src/upgrade-history-index-cli.js",
+    "evidence-forge-audit-upgrades": "dist/src/upgrade-history-audit-cli.js",
+    "evidence-forge-verify-workspace-acceptance": "dist/src/workspace-acceptance-receipt-cli.js",
+    "evidence-forge-verify-lineage-continuity": "dist/src/lineage-continuity-receipt-cli.js",
+    "evidence-forge-preflight-lineage-continuity": "dist/src/current-lineage-continuity-preflight-cli.js",
+    "evidence-forge-self-test": "dist/src/offline-self-test-cli.js"
+  },
+  "engines": {
+    "node": ">=24.4"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "capture": "node dist/src/cli.js capture",
+    "promote": "node dist/src/cli.js promote",
+    "compatibility:sol-ledger": "pnpm build && node scripts/verify-sol-ledger-compatibility.mjs",
+    "dogfood:stack": "pnpm build && node scripts/dogfood-stack.mjs",
+    "dogfood:review": "pnpm build && node scripts/dogfood-review.mjs",
+    "failure:matrix": "node scripts/verify-failure-matrix.mjs",
+    "audit:secrets": "node scripts/audit-secrets.mjs",
+    "benchmark:max-lineage": "pnpm build && node scripts/benchmark-max-lineage.mjs",
+    "benchmark:max-lineage:stable": "pnpm build && node scripts/benchmark-max-lineage.mjs --samples 3",
+    "benchmark:compare": "node scripts/compare-max-lineage-benchmarks.mjs",
+    "readiness:private": "node scripts/private-readiness.mjs",
+    "readiness:verify": "pnpm build && node scripts/verify-private-readiness.mjs",
+    "sbom:production": "node scripts/generate-production-sbom.mjs",
+    "sbom:validate": "node scripts/validate-production-sbom.mjs",
+    "key:id": "pnpm build && node dist/src/key-id-cli.js",
+    "trust:manifest": "pnpm build && node dist/src/trust-manifest-cli.js",
+    "provenance": "pnpm build && node dist/src/provenance-statement-cli.js",
+    "release:pack": "pnpm build && node dist/src/release-evidence-pack-cli.js",
+    "release:index": "pnpm build && node dist/src/release-evidence-index-cli.js",
+    "release:audit": "pnpm build && node dist/src/release-archive-audit-cli.js",
+    "smoke:package": "pnpm build && node scripts/verify-package-install.mjs",
+    "acceptance:packed": "pnpm build && node scripts/verify-packed-operator-acceptance.mjs",
+    "acceptance:archive": "pnpm build && node scripts/verify-cross-release-archive.mjs",
+    "acceptance:capabilities": "pnpm build && node scripts/verify-real-capability-transition.mjs",
+    "acceptance:upgrade-archive": "pnpm build && node scripts/verify-cross-release-upgrade-archive.mjs",
+    "acceptance:lineage": "pnpm build && node scripts/verify-cross-release-lineage.mjs",
+    "acceptance:upgrade-workspace": "pnpm build && node scripts/verify-packed-upgrade-workspace.mjs",
+    "sign:report": "pnpm build && node dist/src/sign-report-cli.js",
+    "bundle:report": "pnpm build && node dist/src/bundle-report-cli.js",
+    "rotate:trust": "pnpm build && node dist/src/rotate-trust-cli.js",
+    "verify:review": "pnpm build && node dist/src/verify-review-cli.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run src && node --test scripts/audit-secrets.test.mjs scripts/benchmark-max-lineage.test.mjs scripts/compare-max-lineage-benchmarks.test.mjs scripts/dogfood-stack.test.mjs scripts/generate-production-sbom.test.mjs scripts/private-readiness.test.mjs scripts/validate-production-sbom.test.mjs scripts/verify-cross-release-archive.test.mjs scripts/verify-private-readiness.test.mjs scripts/verify-real-capability-transition.test.mjs scripts/verify-cross-release-upgrade-archive.test.mjs scripts/verify-cross-release-lineage.test.mjs scripts/verify-packed-upgrade-workspace.test.mjs",
+    "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build",
+    "prepack": "pnpm build"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.2",
+    "@types/node": "^24.10.0",
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1",
+    "eslint": "^9.39.2",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.53.1",
+    "vitest": "^4.0.18"
+  },
+  "dependencies": {
+    "parse5": "^8.0.1"
+  }
+}

@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evidence-forge.local/schema/trust-manifest/1",
+  "title": "Evidence Forge Trust Manifest",
+  "oneOf": [
+    { "$ref": "#/$defs/manual" },
+    { "$ref": "#/$defs/rotation" }
+  ],
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "keyIds": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 32,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/sha256" }
+    },
+    "integrity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["algorithm", "manifestSha256"],
+      "properties": {
+        "algorithm": { "const": "sha256-jcs" },
+        "manifestSha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "manual": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "kind", "mode", "policy", "integrity"],
+      "properties": {
+        "version": { "const": 1 },
+        "kind": { "const": "EvidenceForgeTrustManifest" },
+        "mode": { "const": "manual" },
+        "policy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["algorithm", "trustedKeyIds", "threshold"],
+          "properties": {
+            "algorithm": { "const": "ed25519" },
+            "trustedKeyIds": { "$ref": "#/$defs/keyIds" },
+            "threshold": { "type": "integer", "minimum": 1, "maximum": 32 },
+            "revokedKeyIds": { "$ref": "#/$defs/keyIds" },
+            "validFrom": { "type": "string", "format": "date-time" },
+            "validUntil": { "type": "string", "format": "date-time" }
+          }
+        },
+        "integrity": { "$ref": "#/$defs/integrity" }
+      }
+    },
+    "rotation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "kind", "mode", "anchor", "integrity"],
+      "properties": {
+        "version": { "const": 1 },
+        "kind": { "const": "EvidenceForgeTrustManifest" },
+        "mode": { "const": "rotation-anchor" },
+        "anchor": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["algorithm", "keyIds", "threshold", "historySha256"],
+          "properties": {
+            "algorithm": { "const": "ed25519" },
+            "keyIds": { "$ref": "#/$defs/keyIds" },
+            "threshold": { "type": "integer", "minimum": 1, "maximum": 32 },
+            "historySha256": { "$ref": "#/$defs/sha256" }
+          }
+        },
+        "integrity": { "$ref": "#/$defs/integrity" }
+      }
+    }
+  }
+}

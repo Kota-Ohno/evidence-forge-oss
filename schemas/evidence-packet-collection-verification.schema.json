@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evidence-forge.local/schemas/evidence-packet-collection-verification.schema.json",
+  "title": "Evidence Forge Evidence packet collection verification",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "kind", "outcome", "packetCount", "totalSourceBytes", "firstPacketSha256", "lastPacketSha256", "indexSha256", "auditSha256", "timestampAttested"],
+  "properties": {
+    "version": { "const": 1 },
+    "kind": { "const": "EvidenceForgeEvidencePacketCollectionVerification" },
+    "outcome": { "const": "verified" },
+    "packetCount": { "type": "integer", "minimum": 1, "maximum": 100 },
+    "totalSourceBytes": { "type": "integer", "minimum": 0, "maximum": 67108864 },
+    "firstPacketSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "lastPacketSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "indexSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "auditSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "timestampAttested": { "const": false }
+  }
+}

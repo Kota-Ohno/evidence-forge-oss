@@ -1,0 +1,140 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evidence-forge.local/schemas/review-bootstrap.schema.json",
+  "title": "Evidence Forge Review Workspace bootstrap",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "kind", "review", "stackHistory", "archiveInventory", "upgradeInventory", "coverageReadiness", "workspaceAcceptance", "lineageContinuity", "transitionHistory", "bundleHistoryReadiness"],
+  "properties": {
+    "version": { "const": 1 },
+    "kind": { "const": "EvidenceForgeReviewBootstrap" },
+    "review": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["items", "totals", "limited"],
+      "properties": {
+        "items": {
+          "type": "array",
+          "maxItems": 500,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "status", "quote", "prefix", "suffix", "observedAt", "availableAt", "capturedAt", "sha256", "byteLength", "mediaType", "source", "failureCode", "failureMessage"],
+            "properties": {
+              "id": { "type": "string", "minLength": 1, "maxLength": 256 },
+              "status": { "enum": ["candidate", "rejected", "verified"] },
+              "quote": { "type": "string", "maxLength": 1048576 },
+              "prefix": { "type": "string", "maxLength": 1048576 },
+              "suffix": { "type": "string", "maxLength": 1048576 },
+              "observedAt": { "type": "string", "maxLength": 64 },
+              "availableAt": { "type": "string", "maxLength": 64 },
+              "capturedAt": { "type": "string", "maxLength": 64 },
+              "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+              "byteLength": { "type": "integer", "minimum": 0 },
+              "mediaType": { "type": "string", "maxLength": 256 },
+              "source": { "type": "string", "maxLength": 4096 },
+              "failureCode": { "anyOf": [{ "type": "null" }, { "type": "string", "maxLength": 256 }] },
+              "failureMessage": { "anyOf": [{ "type": "null" }, { "type": "string", "maxLength": 4096 }] }
+            }
+          }
+        },
+        "totals": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["all", "candidate", "rejected", "verified"],
+          "properties": {
+            "all": { "type": "integer", "minimum": 0, "maximum": 500 },
+            "candidate": { "type": "integer", "minimum": 0, "maximum": 500 },
+            "rejected": { "type": "integer", "minimum": 0, "maximum": 500 },
+            "verified": { "type": "integer", "minimum": 0, "maximum": 500 }
+          }
+        },
+        "limited": { "type": "boolean" }
+      }
+    },
+    "stackHistory": { "$ref": "#/$defs/nullableProjection" },
+    "archiveInventory": { "$ref": "#/$defs/nullableProjection" },
+    "upgradeInventory": { "$ref": "#/$defs/nullableProjection" },
+    "coverageReadiness": { "$ref": "#/$defs/nullableProjection" },
+    "workspaceAcceptance": { "$ref": "#/$defs/nullableProjection" },
+    "lineageContinuity": {
+      "anyOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["version", "kind", "outcome", "olderVersion", "newerVersion", "previousLineageSha256", "nextLineageSha256", "previousPacketCount", "nextPacketCount", "previousTransitionCount", "nextTransitionCount", "receiptSha256", "packsReexecuted", "lineagesReaudited", "timestampAttested"],
+          "properties": {
+            "version": { "const": 1 },
+            "kind": { "const": "EvidenceForgeReviewLineageContinuity" },
+            "outcome": { "const": "verified" },
+            "olderVersion": { "$ref": "#/$defs/semver" },
+            "newerVersion": { "$ref": "#/$defs/semver" },
+            "previousLineageSha256": { "$ref": "#/$defs/sha256" },
+            "nextLineageSha256": { "$ref": "#/$defs/sha256" },
+            "previousPacketCount": { "type": "integer", "minimum": 2, "maximum": 99 },
+            "nextPacketCount": { "type": "integer", "minimum": 3, "maximum": 100 },
+            "previousTransitionCount": { "type": "integer", "minimum": 1, "maximum": 98 },
+            "nextTransitionCount": { "type": "integer", "minimum": 2, "maximum": 99 },
+            "receiptSha256": { "$ref": "#/$defs/sha256" },
+            "packsReexecuted": { "const": false },
+            "lineagesReaudited": { "const": false },
+            "timestampAttested": { "const": false }
+          }
+        }
+      ]
+    },
+    "transitionHistory": {
+      "anyOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["version", "kind", "outcome", "transitionCount", "initialPacketCount", "latestPacketCount", "initialBundleSha256", "latestBundleSha256", "collectionReaudited", "timestampAttested"],
+          "properties": {
+            "version": { "const": 1 },
+            "kind": { "const": "EvidenceForgeReviewPacketTransitionHistory" },
+            "outcome": { "const": "verified" },
+            "transitionCount": { "type": "integer", "minimum": 1, "maximum": 99 },
+            "initialPacketCount": { "type": "integer", "minimum": 1, "maximum": 99 },
+            "latestPacketCount": { "type": "integer", "minimum": 2, "maximum": 100 },
+            "initialBundleSha256": { "$ref": "#/$defs/sha256" },
+            "latestBundleSha256": { "$ref": "#/$defs/sha256" },
+            "collectionReaudited": { "const": false },
+            "timestampAttested": { "const": false }
+          }
+        }
+      ]
+    },
+    "bundleHistoryReadiness": {
+      "anyOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["version", "kind", "outcome", "packetCount", "transitionCount", "latestBundleSha256", "historyCollectionReaudited", "timestampAttested"],
+          "properties": {
+            "version": { "const": 1 },
+            "kind": { "const": "EvidenceForgeReviewBundleHistoryReadiness" },
+            "outcome": { "const": "verified" },
+            "packetCount": { "type": "integer", "minimum": 2, "maximum": 100 },
+            "transitionCount": { "type": "integer", "minimum": 1, "maximum": 99 },
+            "latestBundleSha256": { "$ref": "#/$defs/sha256" },
+            "historyCollectionReaudited": { "const": false },
+            "timestampAttested": { "const": false }
+          }
+        }
+      ]
+    }
+  },
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "semver": { "type": "string", "maxLength": 128, "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$" },
+    "nullableProjection": {
+      "anyOf": [
+        { "type": "null" },
+        { "type": "object", "minProperties": 1, "maxProperties": 16 }
+      ]
+    }
+  }
+}

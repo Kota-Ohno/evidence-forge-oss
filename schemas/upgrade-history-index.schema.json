@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evidence-forge.local/schemas/upgrade-history-index.schema.json",
+  "title": "Evidence Forge Upgrade History Index",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "kind", "entries", "assurance", "integrity"],
+  "$defs": { "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" } },
+  "properties": {
+    "version": { "const": 1 },
+    "kind": { "const": "EvidenceForgeUpgradeHistoryIndex" },
+    "entries": {
+      "type": "array", "minItems": 1, "maxItems": 256,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["sequence", "previousPackageVersion", "currentPackageVersion", "previousPackSha256", "currentPackSha256", "upgradeEvidenceSha256", "bindingSha256", "previousEntrySha256", "entrySha256"],
+        "properties": {
+          "sequence": { "type": "integer", "minimum": 1, "maximum": 256 },
+          "previousPackageVersion": { "type": "string", "maxLength": 128 },
+          "currentPackageVersion": { "type": "string", "maxLength": 128 },
+          "previousPackSha256": { "$ref": "#/$defs/sha256" },
+          "currentPackSha256": { "$ref": "#/$defs/sha256" },
+          "upgradeEvidenceSha256": { "$ref": "#/$defs/sha256" },
+          "bindingSha256": { "$ref": "#/$defs/sha256" },
+          "previousEntrySha256": { "oneOf": [{ "$ref": "#/$defs/sha256" }, { "type": "null" }] },
+          "entrySha256": { "$ref": "#/$defs/sha256" }
+        }
+      }
+    },
+    "assurance": {
+      "type": "object", "additionalProperties": false, "required": ["timestamp"],
+      "properties": { "timestamp": { "const": "not-attested" } }
+    },
+    "integrity": {
+      "type": "object", "additionalProperties": false, "required": ["algorithm", "indexSha256"],
+      "properties": { "algorithm": { "const": "sha256-jcs" }, "indexSha256": { "$ref": "#/$defs/sha256" } }
+    }
+  }
+}

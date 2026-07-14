@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evidence-forge.local/schemas/evidence-packet-transition-history-index.schema.json",
+  "title": "Evidence Forge Evidence packet transition history index",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "kind", "entries", "assurance", "integrity"],
+  "properties": {
+    "version": { "const": 1 },
+    "kind": { "const": "EvidenceForgeEvidencePacketTransitionHistoryIndex" },
+    "entries": {
+      "type": "array", "minItems": 1, "maxItems": 99,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["sequence", "transitionAuditSha256", "previousBundleSha256", "nextBundleSha256", "previousIndexSha256", "nextIndexSha256", "previousPacketCount", "nextPacketCount", "appendedPacketCount", "previousEntrySha256", "entrySha256"],
+        "properties": {
+          "sequence": { "type": "integer", "minimum": 1, "maximum": 99 },
+          "transitionAuditSha256": { "$ref": "#/$defs/hash" },
+          "previousBundleSha256": { "$ref": "#/$defs/hash" },
+          "nextBundleSha256": { "$ref": "#/$defs/hash" },
+          "previousIndexSha256": { "$ref": "#/$defs/hash" },
+          "nextIndexSha256": { "$ref": "#/$defs/hash" },
+          "previousPacketCount": { "type": "integer", "minimum": 1, "maximum": 99 },
+          "nextPacketCount": { "type": "integer", "minimum": 2, "maximum": 100 },
+          "appendedPacketCount": { "type": "integer", "minimum": 1, "maximum": 99 },
+          "previousEntrySha256": { "oneOf": [{ "$ref": "#/$defs/hash" }, { "type": "null" }] },
+          "entrySha256": { "$ref": "#/$defs/hash" }
+        }
+      }
+    },
+    "assurance": {
+      "type": "object", "additionalProperties": false, "required": ["timestamp"],
+      "properties": { "timestamp": { "const": "not-attested" } }
+    },
+    "integrity": {
+      "type": "object", "additionalProperties": false, "required": ["algorithm", "indexSha256"],
+      "properties": { "algorithm": { "const": "sha256-jcs" }, "indexSha256": { "$ref": "#/$defs/hash" } }
+    }
+  },
+  "$defs": { "hash": { "type": "string", "pattern": "^[0-9a-f]{64}$" } }
+}

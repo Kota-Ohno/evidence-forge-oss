@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evidence-forge.local/schemas/review-coverage-readiness.schema.json",
+  "title": "Evidence Forge Review Coverage Readiness",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "kind", "outcome", "releaseCount", "transitionCount", "firstRelease", "latestRelease", "releaseHeadsMatched", "timestampAttested"],
+  "properties": {
+    "version": { "const": 1 },
+    "kind": { "const": "EvidenceForgeReviewCoverageReadiness" },
+    "outcome": { "const": "verified" },
+    "releaseCount": { "type": "integer", "minimum": 2, "maximum": 256 },
+    "transitionCount": { "type": "integer", "minimum": 1, "maximum": 255 },
+    "firstRelease": { "$ref": "#/$defs/semver" },
+    "latestRelease": { "$ref": "#/$defs/semver" },
+    "releaseHeadsMatched": { "const": true },
+    "timestampAttested": { "const": false }
+  },
+  "$defs": {
+    "semver": {
+      "type": "string",
+      "pattern": "^(?:0|[1-9]\\d*)\\.(?:0|[1-9]\\d*)\\.(?:0|[1-9]\\d*)(?:-[0-9A-Za-z.-]+)?$",
+      "maxLength": 128
+    }
+  }
+}

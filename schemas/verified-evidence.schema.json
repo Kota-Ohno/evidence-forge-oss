@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evidence-forge.local/schemas/verified-evidence.schema.json",
+  "title": "Evidence Forge verified Evidence envelope",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["kind", "id", "candidateId", "snapshot", "selector", "observedAt", "verifiedAt"],
+  "properties": {
+    "kind": { "const": "VerifiedEvidence" },
+    "id": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "candidateId": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "snapshot": { "$ref": "evidence-candidate.schema.json#/$defs/sourceSnapshot" },
+    "selector": { "$ref": "evidence-candidate.schema.json#/$defs/textQuoteSelector" },
+    "citationView": { "$ref": "citation-view.schema.json" },
+    "observedAt": { "type": "string", "format": "date-time", "maxLength": 64 },
+    "verifiedAt": { "type": "string", "format": "date-time", "maxLength": 64 }
+  }
+}
