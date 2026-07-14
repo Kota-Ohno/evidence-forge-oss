@@ -8,6 +8,8 @@
   replacement.
 - Reject unknown, duplicate, missing, and positional quickstart arguments, and
   update pnpm 11 examples to pass script arguments directly.
+- Cache TypeScript build state outside packaged output and remove a nested pnpm
+  launch so repeated repository quickstarts reach verified Evidence faster.
 
 ## 6.3.1 — 2026-07-14
 
