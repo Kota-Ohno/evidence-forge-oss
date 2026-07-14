@@ -4,7 +4,7 @@ import { open } from "node:fs/promises";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
 import { isDeepStrictEqual } from "node:util";
-import { LocalWorkspace, type ReviewItem } from "./workspace.js";
+import { LocalWorkspace, type ReviewItem, type ReviewListItem } from "./workspace.js";
 import { assertWebSourceCapture } from "./web-capture.js";
 import { citationText } from "./html-citation-view.js";
 import { loadStackAcceptanceReport, type StackAcceptanceReport } from "./stack-report.js";
@@ -737,9 +737,11 @@ async function route(request: IncomingMessage, response: ServerResponse, workspa
 }
 
 function reviewSummary(workspace?: LocalWorkspace, packetReviews?: readonly PacketReviewState[]) {
-  const items = packetReviews ? packetReviews.map((review) => review.summary) : workspace?.listReviewItems(MAX_REVIEW_ITEMS) ?? [];
+  const items = packetReviews
+    ? packetReviews.map((review) => ({ ...review.summary, quoteTruncated: false }))
+    : workspace?.listReviewSummaries(MAX_REVIEW_ITEMS) ?? [];
   return {
-    items: packetReviews ? items : (items as ReviewItem[]).map(toSummary),
+    items: packetReviews ? items : (items as ReviewListItem[]).map(toListSummary),
     totals: {
       all: items.length,
       candidate: items.filter((item) => item.status === "candidate").length,
@@ -747,6 +749,17 @@ function reviewSummary(workspace?: LocalWorkspace, packetReviews?: readonly Pack
       verified: items.filter((item) => item.status === "verified").length,
     },
     limited: Boolean(workspace && items.length === MAX_REVIEW_ITEMS),
+  };
+}
+
+function toListSummary(item: ReviewListItem) {
+  return {
+    id: item.id, status: item.status, quote: item.quote, quoteTruncated: item.quoteTruncated,
+    prefix: item.prefix, suffix: item.suffix,
+    observedAt: item.observedAt, availableAt: item.availableAt, capturedAt: item.capturedAt,
+    sha256: item.sha256, byteLength: item.byteLength,
+    mediaType: boundedDisplay(item.mediaType, 256), source: displaySource(item.sourceUri),
+    failureCode: item.failureCode, failureMessage: item.failureMessage,
   };
 }
 

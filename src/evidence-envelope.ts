@@ -35,12 +35,12 @@ export function assertVerifiedEvidence(value: unknown): asserts value is Verifie
 export function assertSourceSnapshot(value: unknown): asserts value is SourceSnapshot {
   const record = object(value);
   exactKeys(record, ["mediaType", "sha256", "byteLength", "objectPath", "sourceUri", "capturedAt", "availableAt"]);
-  assertBoundedString(record.mediaType, 256, false);
+  assertBoundedCharacters(record.mediaType, 256, false);
   if (typeof record.sha256 !== "string" || !SHA256.test(record.sha256)) invalid();
   if (!Number.isSafeInteger(record.byteLength) || (record.byteLength as number) < 0 ||
       (record.byteLength as number) > MAX_SOURCE_BYTES) invalid();
-  assertBoundedString(record.objectPath, 4096, false);
-  assertBoundedString(record.sourceUri, 4096, false);
+  assertBoundedCharacters(record.objectPath, 4096, false);
+  assertBoundedCharacters(record.sourceUri, 4096, false);
   assertTimestamp(record.capturedAt);
   assertTimestamp(record.availableAt);
 }

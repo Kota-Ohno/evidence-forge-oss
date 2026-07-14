@@ -16,6 +16,7 @@ import { citationText, CitationViewError } from "./html-citation-view.js";
 import { parseTimestamp } from "./timestamp.js";
 import { MAX_SOURCE_BYTES } from "./limits.js";
 import { writePrivateFileExclusive } from "./private-file.js";
+import { BoundedFileReadError, readBoundedFile } from "./bounded-file.js";
 
 const CONTEXT_LENGTH = 32;
 
@@ -220,16 +221,14 @@ async function readSnapshot(snapshot: SourceSnapshot): Promise<Uint8Array> {
 }
 
 async function readBounded(handle: FileHandle, label: string, observedSize: number): Promise<Buffer> {
-  const buffer = Buffer.allocUnsafe(Math.min(observedSize + 1, MAX_SOURCE_BYTES + 1));
-  let offset = 0;
-  while (offset < buffer.length) {
-    const { bytesRead } = await handle.read(buffer, offset, buffer.length - offset, null);
-    if (bytesRead === 0) break;
-    offset += bytesRead;
+  try { return await readBoundedFile(handle, observedSize, MAX_SOURCE_BYTES); }
+  catch (error) {
+    if (error instanceof BoundedFileReadError) {
+      if (error.code === "FILE_TOO_LARGE") throw new PromotionError("SNAPSHOT_TOO_LARGE", `${label} exceeds the 16 MiB limit`);
+      throw new PromotionError("SNAPSHOT_SIZE_MISMATCH", `${label} changed while being read`);
+    }
+    throw error;
   }
-  if (offset > MAX_SOURCE_BYTES) throw new PromotionError("SNAPSHOT_TOO_LARGE", `${label} exceeds the 16 MiB limit`);
-  if (offset > observedSize) throw new PromotionError("SNAPSHOT_SIZE_MISMATCH", `${label} changed while being read`);
-  return buffer.subarray(0, offset);
 }
 
 function findOccurrences(text: string, exact: string, limit = Number.POSITIVE_INFINITY): number[] {

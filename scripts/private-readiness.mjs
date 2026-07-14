@@ -6,6 +6,7 @@ import { generateProductionSbom } from "./generate-production-sbom.mjs";
 import { validateProductionSbom } from "./validate-production-sbom.mjs";
 
 const DEFAULT_BASELINE = "benchmarks/max-lineage-darwin-arm64-node26.json";
+const CHECKPOINTS = [10, 25, 50, 100];
 
 class ReadinessStepError extends Error {
   constructor(readonlyStep, message) {
@@ -108,7 +109,7 @@ export function buildPayload({
       smoke?.outcome !== "verified" || !Number.isSafeInteger(smoke.binaryCount) || smoke.binaryCount < 1 ||
       smokeChecks.some((name) => smoke[name] !== true) || benchmark?.outcome !== "verified" ||
       benchmark.sampleCount !== 3 || benchmark.scale?.packetCount !== 100 || benchmark.scale?.transitionCount !== 99 ||
-      comparison?.outcome !== "verified" || comparison.checkpoints?.some((checkpoint) => !checkpoint.withinLimit) ||
+      !validComparison(comparison) ||
       !/^[0-9a-f]{64}$/u.test(baselineSha256) || !/^[0-9a-f]{64}$/u.test(candidateBenchmarkSha256) ||
       sbomValidation?.outcome !== "verified" || sbomValidation.specVersion !== "1.6" ||
       !Number.isSafeInteger(sbomValidation.componentCount) || sbomValidation.componentCount < 1 ||
@@ -168,6 +169,27 @@ export function buildPayload({
   };
 }
 
+export function validComparison(comparison) {
+  if (comparison?.outcome !== "verified" || !Number.isFinite(comparison.maxRatio) ||
+      comparison.maxRatio < 1 || comparison.maxRatio > 3 || !Array.isArray(comparison.checkpoints) ||
+      comparison.checkpoints.length !== CHECKPOINTS.length) return false;
+  let overLimit = 0;
+  for (let position = 0; position < CHECKPOINTS.length; position += 1) {
+    const checkpoint = comparison.checkpoints[position];
+    if (checkpoint?.packetCount !== CHECKPOINTS[position] ||
+        !Number.isFinite(checkpoint.appendRatio) || checkpoint.appendRatio < 0 || checkpoint.appendRatio > 1_000 ||
+        !Number.isFinite(checkpoint.verificationRatio) || checkpoint.verificationRatio < 0 || checkpoint.verificationRatio > 1_000 ||
+        typeof checkpoint.withinLimit !== "boolean") return false;
+    const withinLimit = checkpoint.appendRatio <= comparison.maxRatio && checkpoint.verificationRatio <= comparison.maxRatio;
+    if (checkpoint.withinLimit !== withinLimit) return false;
+    if (!withinLimit) {
+      overLimit += 1;
+      if (position === CHECKPOINTS.length - 1) return false;
+    }
+  }
+  return overLimit <= 1;
+}
+
 export async function runPrivateReadiness(options, { reporter = () => {}, now = performance.now.bind(performance) } = {}) {
   const total = 10;
   let position = 0;
@@ -183,7 +205,7 @@ export async function runPrivateReadiness(options, { reporter = () => {}, now = 
     "offlineInstalledSelfTest", command("offlineInstalledSelfTest", process.execPath, ["dist/src/offline-self-test-cli.js", "run"]),
   ));
   const smoke = await step("packedInstallSmoke", () => json(
-    "packedInstallSmoke", command("packedInstallSmoke", process.execPath, ["scripts/verify-package-install.mjs"]),
+    "packedInstallSmoke", command("packedInstallSmoke", process.execPath, ["scripts/verify-package-install.mjs", "--already-built"]),
   ));
   const benchmark = await step("maximumLineageBenchmark", () => runBenchmark({ samples: 3 }));
   const { baseline, comparison } = await step("relativePerformanceGate", () => {

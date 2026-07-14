@@ -19,11 +19,12 @@
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["id", "status", "quote", "prefix", "suffix", "observedAt", "availableAt", "capturedAt", "sha256", "byteLength", "mediaType", "source", "failureCode", "failureMessage"],
+            "required": ["id", "status", "quote", "quoteTruncated", "prefix", "suffix", "observedAt", "availableAt", "capturedAt", "sha256", "byteLength", "mediaType", "source", "failureCode", "failureMessage"],
             "properties": {
               "id": { "type": "string", "minLength": 1, "maxLength": 256 },
               "status": { "enum": ["candidate", "rejected", "verified"] },
               "quote": { "type": "string", "maxLength": 1048576 },
+              "quoteTruncated": { "type": "boolean" },
               "prefix": { "type": "string", "maxLength": 1048576 },
               "suffix": { "type": "string", "maxLength": 1048576 },
               "observedAt": { "type": "string", "maxLength": 64 },

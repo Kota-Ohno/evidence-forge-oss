@@ -16,6 +16,11 @@ const roots: string[] = [];
 const AVAILABLE_AT = "2026-07-11T00:00:00.000Z";
 const OBSERVED_AT = new Date("2026-07-11T01:00:00.000Z");
 const VERIFIED_AT = new Date("2026-07-11T02:00:00.000Z");
+const DROP_V4_TRIGGERS = `
+  DROP TRIGGER source_snapshots_no_update; DROP TRIGGER source_snapshots_no_delete;
+  DROP TRIGGER candidates_no_update; DROP TRIGGER candidates_no_delete;
+  DROP TRIGGER verified_evidence_no_update; DROP TRIGGER verified_evidence_no_delete;
+`;
 
 afterEach(async () => {
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
@@ -79,11 +84,64 @@ describe("LocalWorkspace", () => {
     expect(workspace.getCandidate(candidate.id)).toEqual(candidate);
     expect(workspace.getReviewItem(candidate.id)).toMatchObject({ candidate });
     expect(workspace.getReviewItem("candidate_missing")).toBeUndefined();
+    expect(workspace.listReviewSummaries()).toEqual([expect.objectContaining({
+      id: candidate.id, quote: candidate.selector.exact, status: "candidate",
+    })]);
     expect(workspace.getSnapshotsByHash(candidate.snapshot.sha256)).toEqual([candidate.snapshot]);
     expect(workspace.listPromotions()).toEqual([]);
     expect(workspace.getEvidence("evidence_missing")).toBeUndefined();
     workspace.close();
     expect((await stat(databasePath)).mode & 0o777).toBe(0o600);
+  });
+
+  it("keeps review list projections bounded while detail retains the exact quote", async () => {
+    const { databasePath, candidate } = await fixture();
+    const workspace = new LocalWorkspace(databasePath);
+    const longCandidate = {
+      ...candidate, id: `${candidate.id}_long`,
+      selector: { ...candidate.selector, exact: "x".repeat(100_000) },
+    };
+    workspace.saveCandidate(longCandidate, OBSERVED_AT);
+    const summary = workspace.listReviewSummaries().find((item) => item.id === longCandidate.id);
+    expect(Array.from(summary?.quote ?? "")).toHaveLength(240);
+    expect(summary?.quote.endsWith("…")).toBe(true);
+    expect(summary?.quoteTruncated).toBe(true);
+    expect(workspace.getReviewItem(longCandidate.id)?.candidate.selector.exact).toHaveLength(100_000);
+    workspace.close();
+  });
+
+  it("preserves Unicode limits and losslessly migrates NUL text outside the summary projection", async () => {
+    const { databasePath, candidate } = await fixture();
+    const unicodeCandidate = {
+      ...candidate,
+      id: `${candidate.id}_unicode`,
+      snapshot: { ...candidate.snapshot, sha256: "b".repeat(64), mediaType: "界".repeat(256) },
+      selector: { ...candidate.selector, exact: "valid", prefix: "界".repeat(32) },
+    };
+    const workspace = new LocalWorkspace(databasePath);
+    workspace.saveCandidate(unicodeCandidate, OBSERVED_AT);
+    expect(workspace.listReviewSummaries()).toContainEqual(expect.objectContaining({
+      id: unicodeCandidate.id, quote: "valid", prefix: "界".repeat(32), mediaType: "界".repeat(256),
+    }));
+    const nulCandidate = {
+      ...unicodeCandidate, id: `${unicodeCandidate.id}_nul`, selector: { ...unicodeCandidate.selector, exact: "\0invalid" },
+    };
+    workspace.saveCandidate(nulCandidate, OBSERVED_AT);
+    expect(workspace.listReviewSummaries()).toContainEqual(expect.objectContaining({
+      id: nulCandidate.id, quote: "�invalid", quoteTruncated: true,
+    }));
+    expect(workspace.getCandidate(nulCandidate.id)?.selector.exact).toBe("\0invalid");
+    workspace.close();
+
+    const raw = new DatabaseSync(databasePath);
+    raw.exec(`${DROP_V4_TRIGGERS} DROP TABLE candidate_review_summaries; PRAGMA user_version = 3`);
+    raw.close();
+    const migrated = new LocalWorkspace(databasePath);
+    expect(migrated.listReviewSummaries()).toContainEqual(expect.objectContaining({
+      id: unicodeCandidate.id, quote: "valid",
+    }));
+    expect(migrated.getCandidate(nulCandidate.id)?.selector.exact).toBe("\0invalid");
+    migrated.close();
   });
 
   it("atomically persists verified evidence and hash-linked promotion history", async () => {
@@ -200,21 +258,25 @@ describe("LocalWorkspace", () => {
     reopened.close();
   });
 
-  it("rejects unknown fields in stored candidate and Evidence envelopes", async () => {
+  it("makes candidate and Evidence records immutable after persistence", async () => {
     const { databasePath, candidate } = await fixture();
     const workspace = new LocalWorkspace(databasePath);
     const evidence = await workspace.promoteAndPersist(candidate, () => VERIFIED_AT);
     workspace.close();
 
     const raw = new DatabaseSync(databasePath);
-    raw.exec("UPDATE candidates SET record_json = json_set(record_json, '$.localPath', '/private/input')");
-    raw.exec("UPDATE verified_evidence SET record_json = json_set(record_json, '$.candidateId', 'candidate_other')");
+    expect(() => { raw.exec("UPDATE candidates SET record_json = json_set(record_json, '$.localPath', '/private/input')"); })
+      .toThrow("candidates are immutable");
+    expect(() => { raw.exec("UPDATE verified_evidence SET record_json = json_set(record_json, '$.candidateId', 'candidate_other')"); })
+      .toThrow("verified evidence is immutable");
     raw.close();
 
     const reopened = new LocalWorkspace(databasePath);
-    expect(() => reopened.getCandidate(candidate.id)).toThrow("Evidence envelope is invalid");
-    expect(() => reopened.getEvidence(evidence.id)).toThrow("Evidence envelope is invalid");
-    expect(() => reopened.listReviewItems()).toThrow("Evidence envelope is invalid");
+    expect(reopened.getCandidate(candidate.id)).toEqual(candidate);
+    expect(reopened.getEvidence(evidence.id)).toEqual(evidence);
+    expect(reopened.listReviewSummaries()).toContainEqual(expect.objectContaining({
+      id: candidate.id, status: "verified",
+    }));
     reopened.close();
   });
 
@@ -233,11 +295,13 @@ describe("LocalWorkspace", () => {
     const promotions = initial.listPromotions();
     initial.close();
     const raw = new DatabaseSync(databasePath);
-    raw.exec("DROP TABLE promotion_attempts; DROP TABLE web_source_captures; PRAGMA user_version = 1");
+    raw.exec(
+      `${DROP_V4_TRIGGERS} DROP TABLE candidate_review_summaries; DROP TABLE promotion_attempts; DROP TABLE web_source_captures; PRAGMA user_version = 1`,
+    );
     raw.close();
 
     const migrated = new LocalWorkspace(databasePath);
-    expect(migrated.schemaVersion).toBe(3);
+    expect(migrated.schemaVersion).toBe(4);
     expect(migrated.getCandidate(candidate.id)).toEqual(candidate);
     expect(migrated.getEvidence(evidence.id)).toEqual(evidence);
     expect(migrated.listPromotions()).toEqual(promotions);

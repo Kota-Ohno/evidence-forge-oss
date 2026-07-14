@@ -67,7 +67,7 @@
     "release:pack": "pnpm build && node dist/src/release-evidence-pack-cli.js",
     "release:index": "pnpm build && node dist/src/release-evidence-index-cli.js",
     "release:audit": "pnpm build && node dist/src/release-archive-audit-cli.js",
-    "smoke:package": "pnpm build && node scripts/verify-package-install.mjs",
+    "smoke:package": "pnpm build && node scripts/verify-package-install.mjs --already-built",
     "acceptance:packed": "pnpm build && node scripts/verify-packed-operator-acceptance.mjs",
     "acceptance:archive": "pnpm build && node scripts/verify-cross-release-archive.mjs",
     "acceptance:capabilities": "pnpm build && node scripts/verify-real-capability-transition.mjs",

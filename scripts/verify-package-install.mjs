@@ -102,10 +102,13 @@ export function assertPackageEntries(entries) {
   }
 }
 
-export function verifyInstalledPackage() {
+export function verifyInstalledPackage({ alreadyBuilt = false } = {}) {
   const root = mkdtempSync(join(tmpdir(), "evidence-forge-package-"));
   try {
-    const packOutput = run("pnpm", ["pack", "--pack-destination", root], { cwd: REPOSITORY_ROOT });
+    const packArguments = alreadyBuilt
+      ? ["--config.ignore-scripts=true", "pack", "--pack-destination", root]
+      : ["pack", "--pack-destination", root];
+    const packOutput = run("pnpm", packArguments, { cwd: REPOSITORY_ROOT });
     const tarball = readdirSync(root).find((name) => name.endsWith(".tgz"));
     if (!tarball) throw new Error(`pnpm pack did not create a tarball: ${packOutput.trim()}`);
     const tarballPath = join(root, tarball);
@@ -1601,5 +1604,7 @@ try {
 }
 
 if (import.meta.url === new URL(process.argv[1] ?? "", "file:").href) {
-  process.stdout.write(`${JSON.stringify(verifyInstalledPackage(), null, 2)}\n`);
+  const arguments_ = process.argv.slice(2);
+  if (arguments_.some((argument) => argument !== "--already-built")) throw new Error("Unknown option");
+  process.stdout.write(`${JSON.stringify(verifyInstalledPackage({ alreadyBuilt: arguments_.includes("--already-built") }), null, 2)}\n`);
 }

@@ -9,8 +9,9 @@ import { assertWebSourceCapture } from "./web-capture.js";
 import { promoteCandidate } from "./forge.js";
 import { PromotionError } from "./domain.js";
 import { canonicalJsonSha256 } from "./sol-ledger.js";
+import { parseTimestamp } from "./timestamp.js";
 
-export const WORKSPACE_SCHEMA_VERSION = 3;
+export const WORKSPACE_SCHEMA_VERSION = 4;
 export const MAX_RECORD_BYTES = 1_048_576;
 export const MAX_QUERY_LIMIT = 1_000;
 
@@ -40,6 +41,24 @@ export interface ReviewItem {
   readonly latestAttempt?: PromotionAttempt;
   readonly promotion?: PromotionRecord;
   readonly status: "candidate" | "rejected" | "verified";
+}
+
+export interface ReviewListItem {
+  readonly id: string;
+  readonly status: "candidate" | "rejected" | "verified";
+  readonly quote: string;
+  readonly quoteTruncated: boolean;
+  readonly prefix: string;
+  readonly suffix: string;
+  readonly observedAt: string;
+  readonly availableAt: string;
+  readonly capturedAt: string;
+  readonly sha256: string;
+  readonly byteLength: number;
+  readonly mediaType: string;
+  readonly sourceUri: string;
+  readonly failureCode: string | null;
+  readonly failureMessage: string | null;
 }
 
 interface PromotionRecordPayload {
@@ -161,6 +180,44 @@ const MIGRATION_3 = `
   BEGIN SELECT RAISE(ABORT, 'promotion attempts are append-only'); END;
 `;
 
+const MIGRATION_4 = `
+  CREATE TABLE candidate_review_summaries (
+    candidate_id TEXT PRIMARY KEY REFERENCES candidates(candidate_id),
+    quote TEXT NOT NULL CHECK(length(CAST(quote AS BLOB)) BETWEEN 1 AND 960),
+    quote_truncated INTEGER NOT NULL CHECK(quote_truncated IN (0, 1)),
+    prefix TEXT NOT NULL CHECK(length(CAST(prefix AS BLOB)) <= 128),
+    suffix TEXT NOT NULL CHECK(length(CAST(suffix AS BLOB)) <= 128),
+    observed_at TEXT NOT NULL CHECK(length(observed_at) BETWEEN 20 AND 64),
+    available_at TEXT NOT NULL CHECK(length(available_at) BETWEEN 20 AND 64),
+    captured_at TEXT NOT NULL CHECK(length(captured_at) BETWEEN 20 AND 64),
+    sha256 TEXT NOT NULL CHECK(length(sha256) = 64),
+    byte_length INTEGER NOT NULL CHECK(byte_length BETWEEN 0 AND 16777216),
+    media_type TEXT NOT NULL CHECK(length(media_type) BETWEEN 1 AND 256),
+    source_uri TEXT NOT NULL CHECK(length(source_uri) BETWEEN 1 AND 4096)
+  ) STRICT;
+
+  CREATE TRIGGER candidate_review_summaries_no_update
+  BEFORE UPDATE ON candidate_review_summaries
+  BEGIN SELECT RAISE(ABORT, 'candidate review summaries are immutable'); END;
+
+  CREATE TRIGGER candidate_review_summaries_no_delete
+  BEFORE DELETE ON candidate_review_summaries
+  BEGIN SELECT RAISE(ABORT, 'candidate review summaries are immutable'); END;
+
+  CREATE TRIGGER source_snapshots_no_update BEFORE UPDATE ON source_snapshots
+  BEGIN SELECT RAISE(ABORT, 'source snapshots are immutable'); END;
+  CREATE TRIGGER source_snapshots_no_delete BEFORE DELETE ON source_snapshots
+  BEGIN SELECT RAISE(ABORT, 'source snapshots are immutable'); END;
+  CREATE TRIGGER candidates_no_update BEFORE UPDATE ON candidates
+  BEGIN SELECT RAISE(ABORT, 'candidates are immutable'); END;
+  CREATE TRIGGER candidates_no_delete BEFORE DELETE ON candidates
+  BEGIN SELECT RAISE(ABORT, 'candidates are immutable'); END;
+  CREATE TRIGGER verified_evidence_no_update BEFORE UPDATE ON verified_evidence
+  BEGIN SELECT RAISE(ABORT, 'verified evidence is immutable'); END;
+  CREATE TRIGGER verified_evidence_no_delete BEFORE DELETE ON verified_evidence
+  BEGIN SELECT RAISE(ABORT, 'verified evidence is immutable'); END;
+`;
+
 export class LocalWorkspace {
   readonly #database: DatabaseSync;
 
@@ -213,6 +270,7 @@ export class LocalWorkspace {
         VALUES (?, ?, ?, ?, ?) ON CONFLICT(candidate_id) DO NOTHING
       `).run(candidate.id, snapshotRef, candidate.observedAt, candidateJson, persistedAt.toISOString());
       assertStoredJson(this.#database, "candidates", "candidate_id", candidate.id, candidateJson);
+      insertReviewSummary(this.#database, candidate);
     });
   }
 
@@ -350,6 +408,26 @@ export class LocalWorkspace {
     return rows.map(toReviewItem);
   }
 
+  listReviewSummaries(limit = 200): ReviewListItem[] {
+    assertLimit(limit);
+    const rows = this.#database.prepare(`
+      SELECT s.candidate_id AS candidate_row_id, s.quote, s.quote_truncated, s.prefix, s.suffix,
+             s.observed_at, s.available_at, s.captured_at, s.sha256, s.byte_length,
+             s.media_type, s.source_uri, e.evidence_id, p.evidence_id AS promotion_evidence_id,
+             a.outcome AS attempt_outcome, a.failure_code, a.failure_message
+      FROM candidate_review_summaries s
+      JOIN candidates c ON c.candidate_id = s.candidate_id
+      LEFT JOIN verified_evidence e ON e.candidate_id = s.candidate_id
+      LEFT JOIN promotion_history p ON p.candidate_id = s.candidate_id AND p.evidence_id = e.evidence_id
+      LEFT JOIN promotion_attempts a ON a.sequence = (
+        SELECT sequence FROM promotion_attempts
+        WHERE candidate_id = s.candidate_id ORDER BY sequence DESC LIMIT 1
+      )
+      ORDER BY c.persisted_at DESC, s.candidate_id LIMIT ?
+    `).all(limit) as unknown as Array<Record<string, unknown>>;
+    return rows.map(toReviewListItem);
+  }
+
   getReviewItem(candidateId: string): ReviewItem | undefined {
     assertIdentifier(candidateId, "candidate id");
     const row = this.#database.prepare(`
@@ -453,6 +531,18 @@ export class LocalWorkspace {
         this.#database.exec("PRAGMA user_version = 3");
       });
     }
+    if (this.#version() === 3) {
+      this.#transaction(() => {
+        this.#database.exec(MIGRATION_4);
+        const rows = this.#database.prepare("SELECT record_json FROM candidates ORDER BY candidate_id").all() as unknown as JsonRow[];
+        for (const row of rows) {
+          const candidate = parseRecord<EvidenceCandidate>(row, "EvidenceCandidate");
+          if (!candidate) invalidStoredEnvelope();
+          insertReviewSummary(this.#database, candidate);
+        }
+        this.#database.exec("PRAGMA user_version = 4");
+      });
+    }
   }
 
   #version(): number {
@@ -525,6 +615,101 @@ function toReviewItem(row: Record<string, unknown>): ReviewItem {
     ...(promotion ? { promotion } : {}),
     status: evidence ? "verified" : latestAttempt?.outcome === "rejected" ? "rejected" : "candidate",
   };
+}
+
+function toReviewListItem(row: Record<string, unknown>): ReviewListItem {
+  const id = databaseString(row.candidate_row_id, "candidate_row_id");
+  assertIdentifier(id, "candidate id");
+  const quote = boundedDatabaseCharacters(row.quote, "quote", 240);
+  if (quote.length === 0) invalidStoredEnvelope();
+  const quoteTruncated = row.quote_truncated === 1 ? true : row.quote_truncated === 0 ? false : invalidStoredEnvelope();
+  const prefix = boundedDatabaseCharacters(row.prefix, "prefix", 32);
+  const suffix = boundedDatabaseCharacters(row.suffix, "suffix", 32);
+  const observedAt = timestampDatabaseString(row.observed_at, "observed_at");
+  const availableAt = timestampDatabaseString(row.available_at, "available_at");
+  const capturedAt = timestampDatabaseString(row.captured_at, "captured_at");
+  if (parseTimestamp(availableAt) > parseTimestamp(capturedAt) ||
+      parseTimestamp(capturedAt) > parseTimestamp(observedAt)) invalidStoredEnvelope();
+  const sha256 = databaseString(row.sha256, "sha256");
+  if (!/^[0-9a-f]{64}$/u.test(sha256)) invalidStoredEnvelope();
+  const byteLength = Number(row.byte_length);
+  if (!Number.isSafeInteger(byteLength) || byteLength < 0 || byteLength > 16 * 1024 * 1024) invalidStoredEnvelope();
+  const mediaType = boundedDatabaseString(row.media_type, "media_type", 256, false);
+  const sourceUri = boundedDatabaseString(row.source_uri, "source_uri", 4096, false);
+  const failureCode = nullableDatabaseString(row.failure_code, "failure_code", 128);
+  const failureMessage = nullableDatabaseString(row.failure_message, "failure_message", 512);
+  const status = row.evidence_id !== null && row.promotion_evidence_id === row.evidence_id
+    ? "verified"
+    : row.attempt_outcome === "rejected" ? "rejected" : "candidate";
+  return {
+    id, status, quote, quoteTruncated, prefix, suffix, observedAt, availableAt, capturedAt,
+    sha256, byteLength, mediaType, sourceUri, failureCode, failureMessage,
+  };
+}
+
+function candidateReviewSummary(candidate: EvidenceCandidate): Record<string, string | number> {
+  const sanitizedExact = sqliteSafeText(candidate.selector.exact);
+  const quote = Array.from(sanitizedExact);
+  const quoteChanged = sanitizedExact !== candidate.selector.exact;
+  return {
+    candidate_id: candidate.id,
+    quote: quote.length > 240 ? `${quote.slice(0, 239).join("")}…` : sanitizedExact,
+    quote_truncated: quote.length > 240 || quoteChanged ? 1 : 0,
+    prefix: sqliteSafeText(candidate.selector.prefix),
+    suffix: sqliteSafeText(candidate.selector.suffix),
+    observed_at: candidate.observedAt,
+    available_at: candidate.snapshot.availableAt,
+    captured_at: candidate.snapshot.capturedAt,
+    sha256: candidate.snapshot.sha256,
+    byte_length: candidate.snapshot.byteLength,
+    media_type: sqliteSafeText(candidate.snapshot.mediaType),
+    source_uri: sqliteSafeText(candidate.snapshot.sourceUri),
+  };
+}
+
+function sqliteSafeText(value: string): string {
+  return value.replaceAll("\0", "�");
+}
+
+function insertReviewSummary(database: DatabaseSync, candidate: EvidenceCandidate): void {
+  const summary = candidateReviewSummary(candidate);
+  database.prepare(`
+    INSERT INTO candidate_review_summaries(
+      candidate_id, quote, quote_truncated, prefix, suffix, observed_at, available_at, captured_at,
+      sha256, byte_length, media_type, source_uri
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(candidate_id) DO NOTHING
+  `).run(...Object.values(summary));
+  const storedSummary = database.prepare(`
+    SELECT candidate_id, quote, quote_truncated, prefix, suffix, observed_at, available_at, captured_at,
+           sha256, byte_length, media_type, source_uri
+    FROM candidate_review_summaries WHERE candidate_id = ?
+  `).get(candidate.id);
+  if (typeof storedSummary !== "object" ||
+      Object.entries(summary).some(([key, value]) => (storedSummary as Record<string, unknown>)[key] !== value)) {
+    invalidStoredEnvelope();
+  }
+}
+
+function boundedDatabaseString(value: unknown, column: string, maxLength: number, emptyAllowed: boolean): string {
+  const text = databaseString(value, column);
+  if ((!emptyAllowed && text.length === 0) || Array.from(text).length > maxLength) invalidStoredEnvelope();
+  return text;
+}
+
+function boundedDatabaseCharacters(value: unknown, column: string, maxLength: number): string {
+  const text = databaseString(value, column);
+  if (Array.from(text).length > maxLength) invalidStoredEnvelope();
+  return text;
+}
+
+function nullableDatabaseString(value: unknown, column: string, maxLength: number): string | null {
+  return value === null ? null : boundedDatabaseString(value, column, maxLength, false);
+}
+
+function timestampDatabaseString(value: unknown, column: string): string {
+  const timestamp = boundedDatabaseString(value, column, 64, false);
+  try { parseTimestamp(timestamp); } catch { invalidStoredEnvelope(); }
+  return timestamp;
 }
 
 function databaseString(value: unknown, column: string): string {

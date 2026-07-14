@@ -12,6 +12,7 @@ import type { EvidenceCandidate, SourceSnapshot, WebRedirectHop, WebSourceCaptur
 import { CitationViewError, createHtmlCitationView } from "./html-citation-view.js";
 import { MAX_SOURCE_BYTES } from "./limits.js";
 import { writePrivateFileExclusive } from "./private-file.js";
+import { BoundedFileReadError, readBoundedFile } from "./bounded-file.js";
 
 export const DEFAULT_WEB_CAPTURE_LIMITS = {
   maxResponseBytes: 8 * 1024 * 1024,
@@ -491,17 +492,20 @@ async function persistObject(root: string, digest: string, bytes: Buffer): Promi
   }
 }
 
-async function readBoundedSnapshot(handle: FileHandle, observedSize: number): Promise<Buffer> {
-  const buffer = Buffer.allocUnsafe(Math.min(observedSize + 1, MAX_SOURCE_BYTES + 1));
-  let offset = 0;
-  while (offset < buffer.length) {
-    const { bytesRead } = await handle.read(buffer, offset, buffer.length - offset, null);
-    if (bytesRead === 0) break;
-    offset += bytesRead;
+async function readBoundedSnapshot(
+  handle: FileHandle,
+  observedSize: number,
+): Promise<Buffer> {
+  try { return await readBoundedFile(handle, observedSize, MAX_SOURCE_BYTES); }
+  catch (error) {
+    if (error instanceof BoundedFileReadError) {
+      if (error.code === "FILE_TOO_LARGE") {
+        throw new WebCaptureError("DECODED_RESPONSE_TOO_LARGE", "Snapshot exceeds the decoded-size limit");
+      }
+      throw new WebCaptureError("SNAPSHOT_SIZE_MISMATCH", "Snapshot changed while being read");
+    }
+    throw error;
   }
-  if (offset > MAX_SOURCE_BYTES) throw new WebCaptureError("DECODED_RESPONSE_TOO_LARGE", "Snapshot exceeds the decoded-size limit");
-  if (offset > observedSize) throw new WebCaptureError("SNAPSHOT_SIZE_MISMATCH", "Snapshot changed while being read");
-  return buffer.subarray(0, offset);
 }
 
 async function ensureObjectDirectory(root: string, prefix: string): Promise<void> {

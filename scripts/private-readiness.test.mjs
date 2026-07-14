@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  buildPayload, parseArguments, progressStep, readinessStep, textProgressReporter, validateDependencyAudit,
+  buildPayload, parseArguments, progressStep, readinessStep, textProgressReporter, validComparison, validateDependencyAudit,
 } from "./private-readiness.mjs";
 
 test("private readiness uses a pinned local baseline and bounded ratio", () => {
@@ -24,6 +24,19 @@ test("private readiness requires zero production vulnerabilities", () => {
   } }), /not clean/u);
 });
 
+test("private readiness bounds comparison ratios consistently with its verifier", () => {
+  const comparison = {
+    outcome: "verified", maxRatio: 1.25,
+    checkpoints: [10, 25, 50, 100].map((packetCount) => ({
+      packetCount, appendRatio: 1, verificationRatio: 1, withinLimit: true,
+    })),
+  };
+  comparison.checkpoints[0] = { ...comparison.checkpoints[0], appendRatio: 1_000, withinLimit: false };
+  assert.equal(validComparison(comparison), true);
+  comparison.checkpoints[0] = { ...comparison.checkpoints[0], appendRatio: 1_000.01 };
+  assert.equal(validComparison(comparison), false);
+});
+
 test("private readiness builds a closed path-free verified payload", () => {
   const payload = buildPayload({
     packageVersion: "6.2.0",
@@ -41,7 +54,12 @@ test("private readiness builds a closed path-free verified payload", () => {
     benchmark: { outcome: "verified", sampleCount: 3, scale: { packetCount: 100, transitionCount: 99 } },
     comparison: {
       outcome: "verified", maxRatio: 1.25,
-      checkpoints: [{ packetCount: 100, appendRatio: 1.01, verificationRatio: 0.99, withinLimit: true }],
+      // A verified comparison may contain one noisy checkpoint; the comparison gate
+      // rejects only a final-checkpoint or multi-checkpoint regression.
+      checkpoints: [10, 25, 50, 100].map((packetCount, position) => ({
+        packetCount, appendRatio: position === 0 ? 1.26 : 1.01,
+        verificationRatio: 0.99, withinLimit: position !== 0,
+      })),
     },
     baselineSha256: "1".repeat(64),
     candidateBenchmarkSha256: "2".repeat(64),
