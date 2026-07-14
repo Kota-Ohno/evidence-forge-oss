@@ -1,11 +1,13 @@
 import { lstat, mkdir, rm, stat } from "node:fs/promises";
+import { closeSync, constants, fstatSync, openSync, readSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { diagnosticError } from "./diagnostics.js";
 import { captureLocalCitation } from "./forge.js";
 import { runLocalEvidencePipeline } from "./local-evidence-pipeline.js";
 import { writePrivateFileExclusive } from "./private-file.js";
 
-const USAGE = "Usage: evidence-forge forge-local --source FILE --exact TEXT --available-at ISO --directory NEW_DIR --promote-immediately [--error-format json]";
+const USAGE = "Usage: evidence-forge forge-local --source FILE (--exact TEXT | --exact-file FILE) --available-at ISO --directory NEW_DIR --promote-immediately [--error-format json]";
+const MAX_EXACT_BYTES = 64 * 1024;
 
 const ARTIFACTS = {
   candidate: "candidate.json",
@@ -63,7 +65,7 @@ export function parseLocalFileForgeArguments(arguments_: readonly string[]): Loc
       index += 1;
       continue;
     }
-    if (!["--source", "--exact", "--available-at", "--directory"].includes(name ?? "") ||
+    if (!["--source", "--exact", "--exact-file", "--available-at", "--directory"].includes(name ?? "") ||
         values.has(name ?? "") || !value || (name !== "--exact" && value.startsWith("--"))) {
       throw new Error(USAGE);
     }
@@ -76,14 +78,48 @@ export function parseLocalFileForgeArguments(arguments_: readonly string[]): Loc
       "--promote-immediately is required; use capture and promote separately to inspect the Candidate first",
     );
   }
-  if (values.size !== 4) throw new Error(USAGE);
+  const exactInline = values.get("--exact");
+  const exactFile = values.get("--exact-file");
+  if (values.size !== 4 || (exactInline === undefined) === (exactFile === undefined)) throw new Error(USAGE);
   return {
     sourcePath: resolve(required(values, "--source")),
-    exact: required(values, "--exact"),
+    exact: exactFile === undefined ? exactInline as string : readPrivateExactFile(resolve(exactFile)),
     availableAt: required(values, "--available-at"),
     directory: resolve(required(values, "--directory")),
     promotionPreauthorized: true,
   };
+}
+
+function readPrivateExactFile(path: string): string {
+  let descriptor: number | undefined;
+  try {
+    descriptor = openSync(path, constants.O_RDONLY | constants.O_NOFOLLOW);
+    const metadata = fstatSync(descriptor);
+    if (!metadata.isFile() || metadata.size === 0 || metadata.size > MAX_EXACT_BYTES ||
+        (process.platform !== "win32" && (metadata.mode & 0o077) !== 0)) {
+      throw new Error();
+    }
+    const bytes = Buffer.allocUnsafe(MAX_EXACT_BYTES + 1);
+    let length = 0;
+    while (length < bytes.length) {
+      const read = readSync(descriptor, bytes, length, bytes.length - length, null);
+      if (read === 0) break;
+      length += read;
+    }
+    if (length > MAX_EXACT_BYTES) throw new Error();
+    if (length >= 3 && bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf) throw new Error();
+    const exact = new TextDecoder("utf-8", { fatal: true }).decode(bytes.subarray(0, length));
+    const afterRead = fstatSync(descriptor);
+    if (!afterRead.isFile() || (process.platform !== "win32" && (afterRead.mode & 0o077) !== 0) ||
+        afterRead.dev !== metadata.dev || afterRead.ino !== metadata.ino || afterRead.size !== metadata.size ||
+        afterRead.mtimeMs !== metadata.mtimeMs || afterRead.ctimeMs !== metadata.ctimeMs) throw new Error();
+    if (exact.length === 0 || exact.includes("\0")) throw new Error();
+    return exact;
+  } catch {
+    throw new Error("--exact-file must be a private, non-empty UTF-8 regular file no larger than 64 KiB");
+  } finally {
+    if (descriptor !== undefined) closeSync(descriptor);
+  }
 }
 
 /**

@@ -153,12 +153,14 @@ export function verifyInstalledPackage({ alreadyBuilt = false } = {}) {
       }
     }
     const forgeSource = join(consumer, "forge-source.txt");
+    const forgeExact = join(consumer, "forge-exact.txt");
     const forgeDirectory = join(consumer, "forged-evidence");
     writeFileSync(forgeSource, "Installed package keeps one exact local observation.\n", { mode: 0o600 });
+    writeFileSync(forgeExact, "one exact local observation", { mode: 0o600 });
     const documentedDirectory = join(consumer, "documented-forged-evidence");
     const documentedArguments = [
       "--silent", "forge", "--source", forgeSource,
-      "--exact", "one exact local observation",
+      "--exact-file", forgeExact,
       "--available-at", "2026-07-11T00:00:00Z",
       "--directory", documentedDirectory,
       "--promote-immediately",
@@ -174,14 +176,14 @@ export function verifyInstalledPackage({ alreadyBuilt = false } = {}) {
     }
     const forged = JSON.parse(run(mainBinary, [
       "forge-local", "--source", forgeSource,
-      "--exact", "one exact local observation",
+      "--exact-file", forgeExact,
       "--available-at", "2026-07-11T00:00:00Z",
       "--directory", forgeDirectory,
       "--promote-immediately",
     ], { cwd: consumer }));
     const missingConfirmation = assertStructuredError(mainBinary, consumer, [
       "forge-local", "--source", forgeSource,
-      "--exact", "one exact local observation",
+      "--exact-file", forgeExact,
       "--available-at", "2026-07-11T00:00:00Z",
       "--directory", join(consumer, "unconfirmed-evidence"),
       "--error-format", "json",

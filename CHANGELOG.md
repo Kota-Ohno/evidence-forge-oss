@@ -14,6 +14,8 @@
   preauthorization, creates and verifies a portable packet in a new private
   directory, removes identity-matched partial output on failure, and returns a
   path-free result.
+- Add mutually exclusive `--exact-file` input for the local forge, with a
+  no-symlink, private-mode, bounded UTF-8 read that keeps the quote out of argv.
 
 ## 6.3.1 — 2026-07-14
 

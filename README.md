@@ -43,7 +43,7 @@ repository command:
 ```bash
 pnpm --silent forge \
   --source notes.txt \
-  --exact "A uniquely identifying quote" \
+  --exact-file ./private-exact.txt \
   --available-at 2026-07-11T00:00:00Z \
   --directory ./my-evidence \
   --promote-immediately
@@ -56,7 +56,21 @@ private candidate, VerifiedEvidence, portable packet, and packet verification,
 and prints only a path-free result. Use the separate commands below when you
 need to inspect a Candidate before promotion or retain multiple records in the
 SQLite Review Workspace.
-Keep `--silent` so pnpm itself does not echo the source path or exact quote.
+`--exact-file` is the preferred sensitive-input path: it reads one non-empty,
+mode-private UTF-8 regular file up to 64 KiB without placing the quote in the
+forge process argument list. UTF-8 BOM and NUL are rejected; all other decoded
+content, including a trailing newline, is part of the quote. To avoid putting a
+literal quote in shell history, use a private editor or interactive input:
+
+```bash
+umask 077
+IFS= read -r -s exact
+printf %s "$exact" > private-exact.txt
+unset exact
+```
+
+`--exact TEXT` remains available for compatibility. Keep
+`--silent` so pnpm itself does not echo caller arguments.
 
 Installed-package equivalent: `evidence-forge forge-local` with the same
 options. The repository alias performs a safe incremental stale-source check

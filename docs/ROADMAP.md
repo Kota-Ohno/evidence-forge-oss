@@ -3,6 +3,10 @@
 The roadmap is ordered by dependency and risk. A milestone is complete only when
 its stated verification passes.
 
+- [x] **M66 — private exact-quote input.** Done when local forge accepts a bounded
+  private UTF-8 quote file without exposing quote bytes in argv, while preserving
+  the existing inline option and rejecting symlinks, unsafe modes, and ambiguity.
+
 - [x] **M0 — Repository foundation.** Done when the private repository has documented invariants, local checks, and CI.
 - [x] **M1 — Verified local citation vertical slice.** Done when a local UTF-8 source can be snapshotted, cited with an exact selector, and promoted only after hash and selector verification.
 - [x] **M2 — Protocol adapter.** Done when promotion emits a version-pinned Sol Ledger event/artifact envelope without moving product-specific promotion rules into the protocol. Targets merged Sol Ledger commit `339dcf226440f5d135a16bbb7866ee7215ba6cfc`; JSON Schema and Rust/JCS compatibility are verified against a detached checkout.
