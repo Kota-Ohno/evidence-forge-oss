@@ -1,6 +1,6 @@
 import { execFileSync, spawn } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -96,6 +96,7 @@ export function assertPackageEntries(entries) {
     "package/dist/src/lineage-continuity-receipt-cli.js",
     "package/dist/src/current-lineage-continuity-preflight-cli.js",
     "package/dist/src/offline-self-test-cli.js",
+    "package/dist/src/quickstart.js",
     "package/dist/src/cli.js", "package/dist/src/index.js",
   ]) {
     if (!entries.includes(required)) throw new Error(`Package is missing ${required}`);
@@ -130,8 +131,25 @@ export function verifyInstalledPackage({ alreadyBuilt = false } = {}) {
       assertStructuredError(command, consumer);
     }
     const installedRoot = join(consumer, "node_modules", "evidence-forge");
-    const capabilities = JSON.parse(run(join(binRoot, "evidence-forge"), ["capabilities"], { cwd: consumer }));
+    const mainBinary = join(binRoot, "evidence-forge");
+    const capabilities = JSON.parse(run(mainBinary, ["capabilities"], { cwd: consumer }));
     const installedPackage = JSON.parse(readFileSync(join(installedRoot, "package.json"), "utf8"));
+    const quickstartDirectory = join(consumer, "quickstart");
+    const quickstart = JSON.parse(run(mainBinary, ["quickstart", "--directory", quickstartDirectory], { cwd: consumer }));
+    const quickstartCollision = assertStructuredError(mainBinary, consumer, [
+      "quickstart", "--directory", quickstartDirectory, "--error-format", "json",
+    ]);
+    if (quickstart.outcome !== "verified" || quickstart.kind !== "EvidenceForgeQuickstartResult" ||
+        quickstart.assurance?.localOnly !== true || quickstart.assurance?.existingFilesOverwritten !== false ||
+        JSON.stringify(quickstart).includes(consumer) || quickstartCollision.code !== "CLI_OPERATION_FAILED" ||
+        quickstartCollision.message.includes(consumer) || (statSync(quickstartDirectory).mode & 0o777) !== 0o700) {
+      throw new Error("Installed quickstart contract failed");
+    }
+    for (const name of Object.values(quickstart.artifacts)) {
+      if ((statSync(join(quickstartDirectory, name)).mode & 0o777) !== 0o600) {
+        throw new Error("Installed quickstart artifact permissions are not private");
+      }
+    }
     const selfTestBinary = join(binRoot, "evidence-forge-self-test");
     const selfTest = JSON.parse(run(selfTestBinary, ["run"], { cwd: consumer }));
     const partialSelfTest = assertStructuredError(selfTestBinary, consumer, [
@@ -1591,6 +1609,7 @@ try {
       lineageContinuityReviewVerified: true,
       currentLineageContinuityPreflightVerified: true,
       offlineSelfTestVerified: true,
+      quickstartVerified: true,
       cliReviewWorkflowVerified: true,
       packetCollectionVerified: true,
       packetHeadInspectionVerified: true,

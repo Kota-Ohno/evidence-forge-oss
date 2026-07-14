@@ -32,7 +32,7 @@ security policy is `private` / `full_opt_in` / `user_managed`.
 Create or select a detached checkout at the pinned commit, then run:
 
 ```bash
-pnpm compatibility:sol-ledger -- /path/to/sol-ledger-protocol-checkout
+pnpm compatibility:sol-ledger /path/to/sol-ledger-protocol-checkout
 ```
 
 The verifier refuses any other Git commit and validates the generated

@@ -47,7 +47,7 @@ repositories. The output directory is created exclusively and must not already
 exist:
 
 ```bash
-pnpm dogfood:stack -- \
+pnpm dogfood:stack \
   --agent-black-box ../agent-black-box \
   --sol-ledger ../sol-ledger-protocol \
   --output .evidence-forge/stack-run

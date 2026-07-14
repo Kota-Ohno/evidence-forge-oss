@@ -150,6 +150,11 @@ its stated verification passes.
 - [x] **M138a — public-candidate review closure.** Done when Codex review
   feedback on timestamp fidelity and source-size schema alignment is covered
   by focused runtime and packaged-schema regressions on the clean candidate.
+- [x] **M138b — beginner local quickstart.** Done when one deterministic,
+  network-free command demonstrates capture, explicit promotion, portable
+  packet export, and anchored offline verification in a new private directory,
+  rejects ambiguous CLI arguments, and returns no source text or absolute local
+  path in its application result.
 - [ ] **M138 — clean-history ecosystem acceptance.** Done when the public
   candidates complete packed acceptance and receive explicit approval before
   any visibility or package publication change.

@@ -286,7 +286,7 @@ receipt、独立保管した2つの期待digestは引き続き保管してくだ
 signed packに入った配布版CLIでこの境界をまとめて再現する場合は、次を使います。
 
 ```bash
-pnpm acceptance:upgrade-workspace -- \
+pnpm acceptance:upgrade-workspace \
   --release-pack release.evidence-pack.json \
   --release-pack-sha256 EXPECTED_PACK_SHA256 \
   --release-key-id EXPECTED_PROVENANCE_KEY_ID \
@@ -429,11 +429,11 @@ lineageを一度完全検証し、packetを指定順に追加して、next colle
 既存outputを拒否し、lineageとpacket入力は変更しません。
 
 2世代以上の実packをまとめて移行・監査するrelease rehearsalには
-`pnpm acceptance:archive -- --help`を使います。各世代のpack SHA-256とprovenance signer
+`pnpm acceptance:archive --help`を使います。各世代のpack SHA-256とprovenance signer
 key IDを外部記録から明示し、古いindex prefixへのrollbackとpack欠落が拒否されることまで
 確認します。
 
-2世代間でlineageの実互換性を確認する場合は`pnpm acceptance:lineage -- --help`を使います。
+2世代間でlineageの実互換性を確認する場合は`pnpm acceptance:lineage --help`を使います。
 older/newer pack、各pack head、provenance key IDを独立記録から指定します。両packageをscript無効・
 offlineでinstallし、older CLIだけで作ったlineageをnewer CLIだけでverify・direct appendし、newerの
 loopback Reviewまで確認します。出力receiptは両releaseとlineage endpoint、件数、不変性、stale
@@ -740,7 +740,7 @@ exit 2になります。receiptは最大64 KiB、`0600`、path/key IDなし、ti
 `schemas/capability-compatibility-receipt.schema.json`です。
 
 連続する実release pack同士のupgrade rehearsalには
-`pnpm acceptance:capabilities -- --help`を使います。各packの外部SHA-256とprovenance
+`pnpm acceptance:capabilities --help`を使います。各packの外部SHA-256とprovenance
 signer key IDを指定し、署名・artifact bindingを再検証してから別々のclean-roomへinstallし、
 newer packed CLIで比較します。v1.8→v1.9の実結果は、receipt schema追加に加えて既存
 capability schemaをhardeningしたため、保守的に`breaking`です。head改ざんとsynthetic
@@ -835,7 +835,7 @@ upgrade evidence headをindexと再照合します。成功receiptは最大64 Ki
 時刻なしです。schemaは`schemas/upgrade-history-audit-receipt.schema.json`です。
 
 3世代以上のsigned release packからupgrade archive全体を再構築するrelease rehearsalは
-`pnpm acceptance:upgrade-archive -- --help`で入力形式を確認します。各releaseについてpack、
+`pnpm acceptance:upgrade-archive --help`で入力形式を確認します。各releaseについてpack、
 外部pack SHA-256、provenance signer key IDを古い順に指定します。各隣接pairを別々にinstall・
 比較し、upgrade evidence、release binding、hash-chained index、collection auditを生成します。
 成功summaryはversion/count/headと`timestampAttested: false`だけを保持し、middle transition
