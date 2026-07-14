@@ -44,7 +44,7 @@ export async function captureLocalCitation(input: {
     throw new PromotionError("INVALID_TIMESTAMP", "capturedAt must be a valid instant");
   }
   const capturedAt = captureTime.toISOString();
-  if (availableAtMs > captureTime.getTime()) {
+  if (availableAtMs > BigInt(captureTime.getTime()) * 1_000_000n) {
     throw new PromotionError(
       "TIMESTAMP_ORDER_INVALID",
       "availableAt cannot be later than capturedAt",
@@ -150,7 +150,7 @@ export async function promoteCandidate(
     throw new PromotionError("VERIFICATION_TIME_INVALID", "verifiedAt must be a valid instant");
   }
   const verifiedAt = verificationTime.toISOString();
-  if (observedAtMs > verificationTime.getTime()) {
+  if (observedAtMs > BigInt(verificationTime.getTime()) * 1_000_000n) {
     throw new PromotionError(
       "VERIFICATION_TIME_INVALID",
       "verifiedAt cannot be earlier than observedAt",

@@ -57,4 +57,16 @@ describe("portable Evidence envelopes", () => {
       ...candidate, observedAt: "2026-02-30T02:00:00.000Z",
     }); }).toThrow("timestamp is invalid");
   });
+
+  it("preserves sub-millisecond precision when ordering timestamps", () => {
+    expect(() => { assertEvidenceCandidate({
+      ...candidate,
+      snapshot: {
+        ...candidate.snapshot,
+        availableAt: "2026-07-11T00:00:00.123999999Z",
+        capturedAt: "2026-07-11T00:00:00.123000000Z",
+      },
+      observedAt: "2026-07-11T00:00:00.124000000Z",
+    }); }).toThrow("timestamps are out of order");
+  });
 });
