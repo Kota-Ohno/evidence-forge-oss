@@ -42,6 +42,20 @@ describe("verified local citation vertical slice", () => {
     expect(evidence.snapshot.availableAt).toBe("2026-07-11T00:00:00.000Z");
   });
 
+  it("retains the exact accepted sub-millisecond availableAt timestamp", async () => {
+    const { root, sourcePath } = await fixture();
+    const availableAt = "2026-07-11T00:00:00.123456789Z";
+    const candidate = await captureLocalCitation({
+      workspace: join(root, ".evidence-forge"), sourcePath,
+      exact: "The verified fact is 42.", availableAt,
+      now: () => new Date("2026-07-11T01:00:00.000Z"),
+    });
+
+    expect(candidate.snapshot.availableAt).toBe(availableAt);
+    await expect(promoteCandidate(candidate, () => new Date("2026-07-11T02:00:00.000Z")))
+      .resolves.toMatchObject({ snapshot: { availableAt } });
+  });
+
   it("rejects a tampered source snapshot", async () => {
     const { root, sourcePath } = await fixture();
     const candidate = await captureLocalCitation({

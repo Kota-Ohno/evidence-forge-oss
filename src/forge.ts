@@ -104,7 +104,9 @@ export async function captureLocalCitation(input: {
     objectPath: storedPath,
     sourceUri: pathToFileURL(input.sourcePath).href,
     capturedAt,
-    availableAt: new Date(input.availableAt).toISOString(),
+    availableAt: input.availableAt.includes("T")
+      ? input.availableAt
+      : `${input.availableAt}T00:00:00.000Z`,
   };
 
   return {
