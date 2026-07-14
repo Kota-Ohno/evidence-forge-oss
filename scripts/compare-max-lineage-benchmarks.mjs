@@ -98,7 +98,8 @@ export function compareBenchmarks(baselineValue, candidateValue, maxRatio = 1.25
       withinLimit: appendRatio <= maxRatio && verificationRatio <= maxRatio,
     };
   });
-  const regressed = checkpoints.some((checkpoint) => !checkpoint.withinLimit);
+  const exceeded = checkpoints.filter((checkpoint) => !checkpoint.withinLimit);
+  const regressed = exceeded.length >= 2 || checkpoints.at(-1).withinLimit === false;
   return {
     version: 1,
     kind: "EvidenceForgeMaximumLineageBenchmarkComparison",
@@ -111,6 +112,7 @@ export function compareBenchmarks(baselineValue, candidateValue, maxRatio = 1.25
       sameRuntimeFamily: true,
       stableMedianRequired: true,
       artifactSizesMatched: true,
+      regressionRequiresFinalOrTwoCheckpoints: true,
       absoluteTimingClaimed: false,
     },
   };

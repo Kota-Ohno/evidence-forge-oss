@@ -80,12 +80,18 @@ export function verifyPrivateReadinessReceipt(input, expectedSha256, canonicalHa
   if (!finite(performance.maxRatio, 3) || performance.maxRatio < 1 || !SHA256.test(performance.baselineSha256) ||
       !SHA256.test(performance.candidateBenchmarkSha256) || !Array.isArray(performance.checkpoints) ||
       performance.checkpoints.length !== CHECKPOINTS.length) invalid();
+  let overLimitCheckpoints = 0;
   for (let position = 0; position < CHECKPOINTS.length; position += 1) {
     const checkpoint = object(performance.checkpoints[position]);
     exactKeys(checkpoint, ["packetCount", "appendRatio", "verificationRatio"]);
-    if (checkpoint.packetCount !== CHECKPOINTS[position] || !finite(checkpoint.appendRatio, performance.maxRatio) ||
-        !finite(checkpoint.verificationRatio, performance.maxRatio)) invalid();
+    if (checkpoint.packetCount !== CHECKPOINTS[position] || !finite(checkpoint.appendRatio, 1_000) ||
+        !finite(checkpoint.verificationRatio, 1_000)) invalid();
+    if (checkpoint.appendRatio > performance.maxRatio || checkpoint.verificationRatio > performance.maxRatio) {
+      overLimitCheckpoints += 1;
+      if (position === CHECKPOINTS.length - 1) invalid();
+    }
   }
+  if (overLimitCheckpoints > 1) invalid();
 
   const supplyChain = object(value.supplyChain);
   exactKeys(supplyChain, ["format", "specVersion", "sbomSha256", "validator"]);

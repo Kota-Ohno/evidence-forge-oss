@@ -5,6 +5,7 @@ import type { AnySchema } from "ajv";
 import { describe, expect, it } from "vitest";
 import type { EvidenceCandidate, VerifiedEvidence } from "./domain.js";
 import { assertEvidenceCandidate, assertVerifiedEvidence } from "./evidence-envelope.js";
+import { MAX_SOURCE_BYTES } from "./limits.js";
 
 const snapshot = {
   mediaType: "text/plain; charset=utf-8", sha256: "a".repeat(64), byteLength: 12,
@@ -37,6 +38,16 @@ describe("portable Evidence envelopes", () => {
       { ...candidate, localPath: "/private/input" })).toBe(false);
     expect(ajv.validate("https://evidence-forge.local/schemas/verified-evidence.schema.json",
       { ...evidence, selector: { ...evidence.selector, type: "RangeSelector" } })).toBe(false);
+    const maximumSnapshot = { ...snapshot, byteLength: MAX_SOURCE_BYTES };
+    expect(ajv.validate("https://evidence-forge.local/schemas/evidence-candidate.schema.json",
+      { ...candidate, snapshot: maximumSnapshot })).toBe(true);
+    expect(ajv.validate("https://evidence-forge.local/schemas/verified-evidence.schema.json",
+      { ...evidence, snapshot: maximumSnapshot })).toBe(true);
+    const oversizedSnapshot = { ...snapshot, byteLength: MAX_SOURCE_BYTES + 1 };
+    expect(ajv.validate("https://evidence-forge.local/schemas/evidence-candidate.schema.json",
+      { ...candidate, snapshot: oversizedSnapshot })).toBe(false);
+    expect(ajv.validate("https://evidence-forge.local/schemas/verified-evidence.schema.json",
+      { ...evidence, snapshot: oversizedSnapshot })).toBe(false);
   });
 
   it("rejects unknown, malformed, null, and inconsistent records", () => {
@@ -53,5 +64,26 @@ describe("portable Evidence envelopes", () => {
       .toThrow("Derived citation view metadata is invalid");
     expect(() => { assertVerifiedEvidence({ ...evidence, verifiedAt: "2026-07-10T03:00:00.000Z" }); })
       .toThrow("timestamps are out of order");
+    expect(() => { assertEvidenceCandidate({
+      ...candidate, observedAt: "2026-02-30T02:00:00.000Z",
+    }); }).toThrow("timestamp is invalid");
+    expect(() => { assertEvidenceCandidate({
+      ...candidate, snapshot: { ...candidate.snapshot, byteLength: MAX_SOURCE_BYTES },
+    }); }).not.toThrow();
+    expect(() => { assertEvidenceCandidate({
+      ...candidate, snapshot: { ...candidate.snapshot, byteLength: MAX_SOURCE_BYTES + 1 },
+    }); }).toThrow("Evidence envelope is invalid");
+  });
+
+  it("preserves sub-millisecond precision when ordering timestamps", () => {
+    expect(() => { assertEvidenceCandidate({
+      ...candidate,
+      snapshot: {
+        ...candidate.snapshot,
+        availableAt: "2026-07-11T00:00:00.123999999Z",
+        capturedAt: "2026-07-11T00:00:00.123000000Z",
+      },
+      observedAt: "2026-07-11T00:00:00.124000000Z",
+    }); }).toThrow("timestamps are out of order");
   });
 });

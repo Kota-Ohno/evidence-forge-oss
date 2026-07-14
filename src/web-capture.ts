@@ -2,6 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { lookup as dnsLookup } from "node:dns";
 import { constants } from "node:fs";
 import { chmod, lstat, mkdir, open } from "node:fs/promises";
+import type { FileHandle } from "node:fs/promises";
 import { request as httpRequest, type IncomingHttpHeaders, type RequestOptions } from "node:http";
 import { request as httpsRequest } from "node:https";
 import { isIP } from "node:net";
@@ -9,6 +10,9 @@ import { join } from "node:path";
 import { brotliDecompressSync, gunzipSync, inflateSync } from "node:zlib";
 import type { EvidenceCandidate, SourceSnapshot, WebRedirectHop, WebSourceCapture } from "./domain.js";
 import { CitationViewError, createHtmlCitationView } from "./html-citation-view.js";
+import { MAX_SOURCE_BYTES } from "./limits.js";
+import { writePrivateFileExclusive } from "./private-file.js";
+import { BoundedFileReadError, readBoundedFile } from "./bounded-file.js";
 
 export const DEFAULT_WEB_CAPTURE_LIMITS = {
   maxResponseBytes: 8 * 1024 * 1024,
@@ -204,7 +208,7 @@ async function readSnapshot(snapshot: SourceSnapshot): Promise<Buffer> {
     if (stat.size > DEFAULT_WEB_CAPTURE_LIMITS.maxDecodedBytes) {
       throw new WebCaptureError("DECODED_RESPONSE_TOO_LARGE", "Snapshot exceeds the decoded-size limit");
     }
-    return await handle.readFile();
+    return await readBoundedSnapshot(handle, stat.size);
   } catch (error) {
     if (error instanceof WebCaptureError) throw error;
     const code = (error as NodeJS.ErrnoException).code;
@@ -327,6 +331,9 @@ function normalizedLimits(input: WebCaptureLimits = {}): Required<WebCaptureLimi
   const values = { ...DEFAULT_WEB_CAPTURE_LIMITS, ...input };
   for (const [name, value] of Object.entries(values)) {
     if (!Number.isSafeInteger(value) || value < (name === "maxRedirects" ? 0 : 1)) throw new RangeError(`${name} must be a positive safe integer`);
+  }
+  if (values.maxResponseBytes > MAX_SOURCE_BYTES || values.maxDecodedBytes > MAX_SOURCE_BYTES) {
+    throw new RangeError("Web capture byte limits cannot exceed the public 16 MiB ceiling");
   }
   return values;
 }
@@ -463,12 +470,8 @@ function objectPath(root: string, digest: string): string { return join(root, "o
 async function persistObject(root: string, digest: string, bytes: Buffer): Promise<void> {
   const path = objectPath(root, digest);
   await ensureObjectDirectory(root, digest.slice(0, 2));
-  let handle;
   try {
-    handle = await open(path, constants.O_CREAT | constants.O_EXCL | constants.O_WRONLY | constants.O_NOFOLLOW, 0o600);
-    await handle.writeFile(bytes);
-    await handle.sync();
-    await handle.chmod(0o600);
+    await writePrivateFileExclusive(path, bytes);
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
     let existingHandle;
@@ -476,7 +479,8 @@ async function persistObject(root: string, digest: string, bytes: Buffer): Promi
       existingHandle = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW);
       const stat = await existingHandle.stat();
       if (!stat.isFile()) throw new WebCaptureError("SNAPSHOT_PATH_UNSAFE", "Existing object is not a regular file");
-      const existing = await existingHandle.readFile();
+      if (stat.size > MAX_SOURCE_BYTES) throw new WebCaptureError("DECODED_RESPONSE_TOO_LARGE", "Existing object exceeds the decoded-size limit");
+      const existing = await readBoundedSnapshot(existingHandle, stat.size);
       if (createHash("sha256").update(existing).digest("hex") !== digest) throw new WebCaptureError("SNAPSHOT_HASH_MISMATCH", "Existing object is corrupt");
       await existingHandle.chmod(0o600);
     } catch (existingError) {
@@ -485,8 +489,22 @@ async function persistObject(root: string, digest: string, bytes: Buffer): Promi
     } finally {
       await existingHandle?.close();
     }
-  } finally {
-    await handle?.close();
+  }
+}
+
+async function readBoundedSnapshot(
+  handle: FileHandle,
+  observedSize: number,
+): Promise<Buffer> {
+  try { return await readBoundedFile(handle, observedSize, MAX_SOURCE_BYTES); }
+  catch (error) {
+    if (error instanceof BoundedFileReadError) {
+      if (error.code === "FILE_TOO_LARGE") {
+        throw new WebCaptureError("DECODED_RESPONSE_TOO_LARGE", "Snapshot exceeds the decoded-size limit");
+      }
+      throw new WebCaptureError("SNAPSHOT_SIZE_MISMATCH", "Snapshot changed while being read");
+    }
+    throw error;
   }
 }
 

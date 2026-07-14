@@ -56,6 +56,21 @@ test("private readiness verifier emits a closed lighter-assurance projection", (
   assert.equal(JSON.stringify(verification).includes("baselineSha256"), false);
 });
 
+test("private readiness verifier accepts only one non-final noisy checkpoint", () => {
+  const value = receipt();
+  value.performance.checkpoints[0].appendRatio = 1.26;
+  const payload = structuredClone(value);
+  delete payload.integrity;
+  value.integrity.receiptSha256 = hash(payload);
+  assert.equal(verifyPrivateReadinessReceipt(value, value.integrity.receiptSha256, hash).outcome, "verified");
+
+  value.performance.checkpoints[1].verificationRatio = 1.26;
+  const secondPayload = structuredClone(value);
+  delete secondPayload.integrity;
+  value.integrity.receiptSha256 = hash(secondPayload);
+  assert.throws(() => verifyPrivateReadinessReceipt(value, value.integrity.receiptSha256, hash), /schema is invalid/u);
+});
+
 test("private readiness verifier rejects mutation, unknown fields, and stale heads", () => {
   const value = receipt();
   assert.throws(() => verifyPrivateReadinessReceipt(

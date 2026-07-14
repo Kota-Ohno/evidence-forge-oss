@@ -147,6 +147,9 @@ its stated verification passes.
 - [x] **M137 — clean public history.** Done when a reviewed fresh snapshot uses
   a GitHub noreply author, retains private development history separately, and
   pins the clean-history Sol Ledger contract without changing wire schemas.
+- [x] **M138a — public-candidate review closure.** Done when Codex review
+  feedback on timestamp fidelity and source-size schema alignment is covered
+  by focused runtime and packaged-schema regressions on the clean candidate.
 - [ ] **M138 — clean-history ecosystem acceptance.** Done when the public
   candidates complete packed acceptance and receive explicit approval before
   any visibility or package publication change.

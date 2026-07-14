@@ -6,6 +6,7 @@ import { generateProductionSbom } from "./generate-production-sbom.mjs";
 import { validateProductionSbom } from "./validate-production-sbom.mjs";
 
 const DEFAULT_BASELINE = "benchmarks/max-lineage-darwin-arm64-node26.json";
+const CHECKPOINTS = [10, 25, 50, 100];
 
 class ReadinessStepError extends Error {
   constructor(readonlyStep, message) {
@@ -21,6 +22,27 @@ export async function readinessStep(name, operation) {
     if (error instanceof ReadinessStepError) throw error;
     throw new ReadinessStepError(name, `${name} did not verify`);
   }
+}
+
+export async function progressStep(name, position, total, operation, reporter, now = performance.now.bind(performance)) {
+  const startedAt = now();
+  reporter({ name, position, total, state: "started", elapsedMs: 0 });
+  try {
+    const value = await readinessStep(name, operation);
+    reporter({ name, position, total, state: "completed", elapsedMs: now() - startedAt });
+    return value;
+  } catch (error) {
+    reporter({ name, position, total, state: "failed", elapsedMs: now() - startedAt });
+    throw error;
+  }
+}
+
+export function textProgressReporter(write = (line) => process.stderr.write(line)) {
+  return ({ name, position, total, state, elapsedMs }) => {
+    const marker = state === "completed" ? "done" : state === "failed" ? "failed" : "start";
+    const elapsed = state === "started" ? "" : ` (${(elapsedMs / 1000).toFixed(1)}s)`;
+    write(`[${String(position)}/${String(total)}] ${marker} ${name}${elapsed}\n`);
+  };
 }
 
 export function parseArguments(argv) {
@@ -87,7 +109,7 @@ export function buildPayload({
       smoke?.outcome !== "verified" || !Number.isSafeInteger(smoke.binaryCount) || smoke.binaryCount < 1 ||
       smokeChecks.some((name) => smoke[name] !== true) || benchmark?.outcome !== "verified" ||
       benchmark.sampleCount !== 3 || benchmark.scale?.packetCount !== 100 || benchmark.scale?.transitionCount !== 99 ||
-      comparison?.outcome !== "verified" || comparison.checkpoints?.some((checkpoint) => !checkpoint.withinLimit) ||
+      !validComparison(comparison) ||
       !/^[0-9a-f]{64}$/u.test(baselineSha256) || !/^[0-9a-f]{64}$/u.test(candidateBenchmarkSha256) ||
       sbomValidation?.outcome !== "verified" || sbomValidation.specVersion !== "1.6" ||
       !Number.isSafeInteger(sbomValidation.componentCount) || sbomValidation.componentCount < 1 ||
@@ -147,62 +169,79 @@ export function buildPayload({
   };
 }
 
-export async function runPrivateReadiness(options) {
-  command("repositoryCheck", "pnpm", ["check"]);
-  const dependencyCount = validateDependencyAudit(json(
-    "productionDependencyAudit",
-    command("productionDependencyAudit", "pnpm", ["audit", "--prod", "--json"]),
-  ));
-  const secretAudit = json(
-    "dedicatedSecretAudit",
-    command("dedicatedSecretAudit", process.execPath, ["scripts/audit-secrets.mjs"]),
-  );
-  const selfTest = json(
-    "offlineInstalledSelfTest",
-    command("offlineInstalledSelfTest", process.execPath, ["dist/src/offline-self-test-cli.js", "run"]),
-  );
-  const smoke = json(
-    "packedInstallSmoke",
-    command("packedInstallSmoke", process.execPath, ["scripts/verify-package-install.mjs"]),
-  );
-  const benchmark = await readinessStep(
-    "maximumLineageBenchmark", () => runBenchmark({ samples: 3 }),
-  );
-  const baseline = await readinessStep(
-    "relativePerformanceGate", () => loadBenchmarkFile(options.baselinePath),
-  );
-  const comparison = await readinessStep(
-    "relativePerformanceGate", () => compareBenchmarks(baseline, benchmark, options.maxRatio),
-  );
-  if (comparison.outcome !== "verified") {
-    throw new ReadinessStepError("relativePerformanceGate", "relative performance gate detected a regression");
+export function validComparison(comparison) {
+  if (comparison?.outcome !== "verified" || !Number.isFinite(comparison.maxRatio) ||
+      comparison.maxRatio < 1 || comparison.maxRatio > 3 || !Array.isArray(comparison.checkpoints) ||
+      comparison.checkpoints.length !== CHECKPOINTS.length) return false;
+  let overLimit = 0;
+  for (let position = 0; position < CHECKPOINTS.length; position += 1) {
+    const checkpoint = comparison.checkpoints[position];
+    if (checkpoint?.packetCount !== CHECKPOINTS[position] ||
+        !Number.isFinite(checkpoint.appendRatio) || checkpoint.appendRatio < 0 || checkpoint.appendRatio > 1_000 ||
+        !Number.isFinite(checkpoint.verificationRatio) || checkpoint.verificationRatio < 0 || checkpoint.verificationRatio > 1_000 ||
+        typeof checkpoint.withinLimit !== "boolean") return false;
+    const withinLimit = checkpoint.appendRatio <= comparison.maxRatio && checkpoint.verificationRatio <= comparison.maxRatio;
+    if (checkpoint.withinLimit !== withinLimit) return false;
+    if (!withinLimit) {
+      overLimit += 1;
+      if (position === CHECKPOINTS.length - 1) return false;
+    }
   }
-  const packageVersion = await readinessStep(
+  return overLimit <= 1;
+}
+
+export async function runPrivateReadiness(options, { reporter = () => {}, now = performance.now.bind(performance) } = {}) {
+  const total = 10;
+  let position = 0;
+  const step = (name, operation) => progressStep(name, position += 1, total, operation, reporter, now);
+  await step("repositoryCheck", () => command("repositoryCheck", "pnpm", ["check"]));
+  const dependencyCount = await step("productionDependencyAudit", () => validateDependencyAudit(json(
+    "productionDependencyAudit", command("productionDependencyAudit", "pnpm", ["audit", "--prod", "--json"]),
+  )));
+  const secretAudit = await step("dedicatedSecretAudit", () => json(
+    "dedicatedSecretAudit", command("dedicatedSecretAudit", process.execPath, ["scripts/audit-secrets.mjs"]),
+  ));
+  const selfTest = await step("offlineInstalledSelfTest", () => json(
+    "offlineInstalledSelfTest", command("offlineInstalledSelfTest", process.execPath, ["dist/src/offline-self-test-cli.js", "run"]),
+  ));
+  const smoke = await step("packedInstallSmoke", () => json(
+    "packedInstallSmoke", command("packedInstallSmoke", process.execPath, ["scripts/verify-package-install.mjs", "--already-built"]),
+  ));
+  const benchmark = await step("maximumLineageBenchmark", () => runBenchmark({ samples: 3 }));
+  const { baseline, comparison } = await step("relativePerformanceGate", () => {
+    const baseline = loadBenchmarkFile(options.baselinePath);
+    const comparison = compareBenchmarks(baseline, benchmark, options.maxRatio);
+    if (comparison.outcome !== "verified") {
+      throw new ReadinessStepError("relativePerformanceGate", "relative performance gate detected a regression");
+    }
+    return { baseline, comparison };
+  });
+  const packageVersion = await step(
     "packageMetadata", () => json("packageMetadata", readFileSync("package.json", "utf8")).version,
   );
-  const { canonicalJsonSha256 } = await readinessStep(
-    "receipt", () => import("../dist/src/sol-ledger.js"),
-  );
-  const { sbom, sbomValidation } = await readinessStep("productionSbomValidation", () => {
+  const { sbom, sbomValidation } = await step("productionSbomValidation", () => {
     const generated = generateProductionSbom();
     return { sbom: generated, sbomValidation: validateProductionSbom(generated) };
   });
-  const payload = await readinessStep("receipt", () => buildPayload({
-    packageVersion, dependencyCount, secretAudit, selfTest, smoke, benchmark, comparison,
-    baselineSha256: canonicalJsonSha256(baseline),
-    candidateBenchmarkSha256: canonicalJsonSha256(benchmark),
-    sbomValidation,
-    sbomSha256: canonicalJsonSha256(sbom),
-  }));
-  return {
-    ...payload,
-    integrity: { algorithm: "sha256-jcs", receiptSha256: canonicalJsonSha256(payload) },
-  };
+  return await step("receipt", async () => {
+    const { canonicalJsonSha256 } = await import("../dist/src/sol-ledger.js");
+    const payload = buildPayload({
+      packageVersion, dependencyCount, secretAudit, selfTest, smoke, benchmark, comparison,
+      baselineSha256: canonicalJsonSha256(baseline), candidateBenchmarkSha256: canonicalJsonSha256(benchmark),
+      sbomValidation, sbomSha256: canonicalJsonSha256(sbom),
+    });
+    return {
+      ...payload,
+      integrity: { algorithm: "sha256-jcs", receiptSha256: canonicalJsonSha256(payload) },
+    };
+  });
 }
 
 async function main() {
   try {
-    process.stdout.write(`${JSON.stringify(await runPrivateReadiness(parseArguments(process.argv.slice(2))), null, 2)}\n`);
+    process.stdout.write(`${JSON.stringify(await runPrivateReadiness(
+      parseArguments(process.argv.slice(2)), { reporter: textProgressReporter() },
+    ), null, 2)}\n`);
   } catch (error) {
     process.stderr.write(`${JSON.stringify({
       version: 1,

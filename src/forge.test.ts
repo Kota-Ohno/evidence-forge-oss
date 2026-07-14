@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm, symlink, unlink, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, symlink, truncate, unlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -42,6 +42,20 @@ describe("verified local citation vertical slice", () => {
     expect(evidence.snapshot.availableAt).toBe("2026-07-11T00:00:00.000Z");
   });
 
+  it("retains the exact accepted sub-millisecond availableAt timestamp", async () => {
+    const { root, sourcePath } = await fixture();
+    const availableAt = "2026-07-11T00:00:00.123456789Z";
+    const candidate = await captureLocalCitation({
+      workspace: join(root, ".evidence-forge"), sourcePath,
+      exact: "The verified fact is 42.", availableAt,
+      now: () => new Date("2026-07-11T01:00:00.000Z"),
+    });
+
+    expect(candidate.snapshot.availableAt).toBe(availableAt);
+    await expect(promoteCandidate(candidate, () => new Date("2026-07-11T02:00:00.000Z")))
+      .resolves.toMatchObject({ snapshot: { availableAt } });
+  });
+
   it("rejects a tampered source snapshot", async () => {
     const { root, sourcePath } = await fixture();
     const candidate = await captureLocalCitation({
@@ -79,6 +93,15 @@ describe("verified local citation vertical slice", () => {
     await expect(captureLocalCitation({ ...base, exact: "same quote" })).rejects.toMatchObject({
       code: "SELECTOR_AMBIGUOUS",
     });
+  });
+
+  it("rejects an oversized local source before reading it", async () => {
+    const { root, sourcePath } = await fixture();
+    await truncate(sourcePath, 16 * 1024 * 1024 + 1);
+    await expect(captureLocalCitation({
+      workspace: join(root, ".evidence-forge"), sourcePath,
+      exact: "The verified fact is 42.", availableAt: "2026-07-11",
+    })).rejects.toMatchObject({ code: "SNAPSHOT_TOO_LARGE" });
   });
 
   it("rejects candidate selector tampering even when exact text still exists", async () => {
