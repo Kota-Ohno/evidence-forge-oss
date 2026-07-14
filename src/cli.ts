@@ -16,6 +16,7 @@ import { appendEvidencePacketTransitionHistoryIndex, createEvidencePacketTransit
 import { auditEvidencePacketTransitionHistoryCollection, verifyEvidencePacketTransitionHistoryAuditReceipt } from "./evidence-packet-transition-history-audit.js";
 import { captureLocalCitation, promoteCandidate } from "./forge.js";
 import { inspectPacketHead, PacketHeadInspectionError } from "./packet-head-inspection.js";
+import { forgeLocalFile, parseLocalFileForgeArguments } from "./local-file-forge.js";
 import { writePrivateFileExclusive } from "./private-file.js";
 import { parseQuickstartArguments, runQuickstart } from "./quickstart.js";
 import { assertWebSourceCapture, captureWebSource, createCandidateFromWebCapture, WebCaptureError } from "./web-capture.js";
@@ -25,6 +26,7 @@ import { LocalWorkspace } from "./workspace.js";
 const arguments_ = process.argv.slice(2);
 const HELP = `Usage:
   evidence-forge quickstart [--directory NEW_DIR]
+  evidence-forge forge-local --source FILE --exact TEXT --available-at ISO --directory NEW_DIR --promote-immediately
   evidence-forge capabilities
   evidence-forge compare-capabilities --previous FILE --expected-previous-sha256 SHA256 --current FILE --expected-current-sha256 SHA256 [--out NEW_FILE]
   evidence-forge capture --workspace DIR --source FILE --exact TEXT --available-at ISO [--database FILE] [--out NEW_FILE]
@@ -60,6 +62,10 @@ async function main(): Promise<void> {
   if (command === "quickstart") {
     const directory = parseQuickstartArguments(arguments_);
     process.stdout.write(`${JSON.stringify(await runQuickstart(directory), null, 2)}\n`);
+    return;
+  }
+  if (command === "forge-local") {
+    process.stdout.write(`${JSON.stringify(await forgeLocalFile(parseLocalFileForgeArguments(arguments_)), null, 2)}\n`);
     return;
   }
   if (command === "capabilities") {

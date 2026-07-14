@@ -22,6 +22,40 @@ while source changes still invalidate the project. M139 stores build state under
 from the user-facing script. The final median is 68.0% below baseline. The cache
 is neither committed nor packed.
 
+## One-process local-file forge latency (2026-07-14)
+
+Scenario: Apple silicon / macOS / Node.js v26.0.0, already-built production CLI,
+warm filesystem cache, three independent new output directories, and the same
+README source, exact quote, and availability timestamp in every run. The
+baseline invokes `capture`, `promote`, `export-packet`, and `verify-packet` as
+four separate CLI processes; the benchmark parent reads the packet digest
+between the final two stages. The target is one workflow process with a median
+below 500 ms while retaining every gate.
+Reproduce the direct-CLI comparison (one excluded warmup per path,
+counterbalanced order, build and pnpm startup excluded) with:
+
+```bash
+pnpm benchmark:local-forge --samples 3
+```
+
+| revision | samples | median |
+| --- | --- | ---: |
+| four-process baseline | 391.210 / 392.563 / 392.262 ms | 392.262 ms |
+| one-process `forge-local` | 122.988 / 128.792 / 124.020 ms | 124.020 ms |
+
+Each baseline stage took about 100 ms. A V8 sampling profile of `capture`
+recorded 50 ticks, 80% in native startup bookkeeping, with the heavy call tree
+led by Node internal-loader compilation. The retained change therefore composes
+the existing capture, promotion, packet export, and packet verification
+functions in one process instead of changing their algorithms or skipping a
+check. Median latency fell 68.38%, the 500 ms target was met, and the result still
+requires explicit immediate-promotion preauthorization.
+
+The user-facing repository command also runs TypeScript's incremental
+stale-source check and pnpm startup. Three warm runs of the documented
+`pnpm --silent forge ...` path were 470 / 470 / 470 ms, below a separate 700 ms
+operator target while preserving the one-command workflow.
+
 ## Maximum lineage benchmark
 
 `pnpm benchmark:max-lineage` は、製品の公開上限を実データ経路で検証する

@@ -37,7 +37,32 @@ The `--silent` flag also prevents pnpm from echoing a caller-supplied output
 path; the application result itself contains artifact names, IDs, and hashes
 but no absolute local path.
 
-For your own source, run the same critical transition manually:
+For your own local text file, create and verify a portable packet with one
+repository command:
+
+```bash
+pnpm --silent forge \
+  --source notes.txt \
+  --exact "A uniquely identifying quote" \
+  --available-at 2026-07-11T00:00:00Z \
+  --directory ./my-evidence \
+  --promote-immediately
+```
+
+The output directory must be new. `--promote-immediately` explicitly
+preauthorizes promotion before the Candidate exists; this shortest path does
+not pause for human Candidate inspection. The command runs locally, creates a
+private candidate, VerifiedEvidence, portable packet, and packet verification,
+and prints only a path-free result. Use the separate commands below when you
+need to inspect a Candidate before promotion or retain multiple records in the
+SQLite Review Workspace.
+Keep `--silent` so pnpm itself does not echo the source path or exact quote.
+
+Installed-package equivalent: `evidence-forge forge-local` with the same
+options. The repository alias performs a safe incremental stale-source check
+before starting the single-process Evidence workflow.
+
+To run the same critical transition manually:
 
 ```bash
 pnpm build
