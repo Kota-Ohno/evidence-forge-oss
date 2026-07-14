@@ -47,7 +47,7 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
-    "quickstart": "pnpm --silent build && node dist/src/cli.js quickstart",
+    "quickstart": "tsc -b tsconfig.build.json && node dist/src/cli.js quickstart",
     "capture": "node dist/src/cli.js capture",
     "promote": "node dist/src/cli.js promote",
     "compatibility:sol-ledger": "pnpm build && node scripts/verify-sol-ledger-compatibility.mjs",

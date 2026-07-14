@@ -155,6 +155,11 @@ its stated verification passes.
   packet export, and anchored offline verification in a new private directory,
   rejects ambiguous CLI arguments, and returns no source text or absolute local
   path in its application result.
+- [x] **M139 — warm quickstart latency.** Done when repeated repository
+  quickstarts reuse safe TypeScript incremental state outside packaged output,
+  avoid a nested package-manager launch, remain below 700 ms median on the
+  documented reference scenario, and pass the full repository and package smoke
+  checks.
 - [ ] **M138 — clean-history ecosystem acceptance.** Done when the public
   candidates complete packed acceptance and receive explicit approval before
   any visibility or package publication change.

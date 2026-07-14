@@ -1,5 +1,27 @@
 # Performance checks
 
+## Repository quickstart latency (2026-07-14)
+
+Scenario: Apple silicon / macOS / Node.js v26.0.0 / pnpm 11.0.8, warm dependency
+cache, five independent new output directories, wall time around
+`pnpm --silent quickstart --directory <new-directory>`. The target is a warm
+median below 700 ms without skipping TypeScript stale-source detection.
+
+| revision | samples | median |
+| --- | --- | ---: |
+| before | 1625.9 / 1470.4 / 1519.2 / 1472.2 / 1451.1 ms | 1472.2 ms |
+| after | 535.6 / 476.7 / 470.5 / 468.0 / 469.7 ms | 470.5 ms |
+
+The baseline profile attributes about 1052 ms median to the unconditional build;
+the quickstart runtime itself takes about 137 ms median. TypeScript extended
+diagnostics report 0.76 seconds total, led by type-check and emit work. The first
+incremental attempt still took 766.1 ms median and missed the target, so it was
+replaced with TypeScript build mode: an unchanged project check takes about 73 ms
+while source changes still invalidate the project. M139 stores build state under
+`node_modules/.cache`, uses `tsc -b` directly, and removes the nested pnpm process
+from the user-facing script. The final median is 68.0% below baseline. The cache
+is neither committed nor packed.
+
 ## Maximum lineage benchmark
 
 `pnpm benchmark:max-lineage` は、製品の公開上限を実データ経路で検証する
