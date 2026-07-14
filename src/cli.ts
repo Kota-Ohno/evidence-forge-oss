@@ -26,7 +26,7 @@ import { LocalWorkspace } from "./workspace.js";
 const arguments_ = process.argv.slice(2);
 const HELP = `Usage:
   evidence-forge quickstart [--directory NEW_DIR]
-  evidence-forge forge-local --source FILE --exact TEXT --available-at ISO --directory NEW_DIR --promote-immediately
+  evidence-forge forge-local --source FILE (--exact TEXT | --exact-file FILE) --available-at ISO --directory NEW_DIR --promote-immediately
   evidence-forge capabilities
   evidence-forge compare-capabilities --previous FILE --expected-previous-sha256 SHA256 --current FILE --expected-current-sha256 SHA256 [--out NEW_FILE]
   evidence-forge capture --workspace DIR --source FILE --exact TEXT --available-at ISO [--database FILE] [--out NEW_FILE]

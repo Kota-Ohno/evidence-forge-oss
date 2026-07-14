@@ -40,6 +40,34 @@ describe("local file forge", () => {
     ]) expect(() => parseLocalFileForgeArguments(invalid)).toThrow("Usage: evidence-forge forge-local");
   });
 
+  it("reads an exact quote from one bounded private file and rejects unsafe alternatives", async () => {
+    const root = await mkdtemp(join(tmpdir(), "evidence-exact-file-"));
+    roots.push(root);
+    const exactFile = join(root, "exact.txt");
+    await writeFile(exactFile, EXACT, { mode: 0o600 });
+    const base = ["forge-local", "--source", "notes.txt", "--available-at", "2026-07-11",
+      "--directory", "evidence", "--promote-immediately"];
+    expect(parseLocalFileForgeArguments([...base, "--exact-file", exactFile]).exact).toBe(EXACT);
+    expect(() => parseLocalFileForgeArguments([...base, "--exact", EXACT, "--exact-file", exactFile])).toThrow("Usage");
+
+    const link = join(root, "exact-link.txt");
+    await symlink(exactFile, link);
+    expect(() => parseLocalFileForgeArguments([...base, "--exact-file", link])).toThrow("private, non-empty UTF-8");
+    await chmod(exactFile, 0o644);
+    if (process.platform !== "win32") {
+      expect(() => parseLocalFileForgeArguments([...base, "--exact-file", exactFile])).toThrow("private, non-empty UTF-8");
+    }
+    await chmod(exactFile, 0o600);
+    await writeFile(exactFile, "", { mode: 0o600 });
+    expect(() => parseLocalFileForgeArguments([...base, "--exact-file", exactFile])).toThrow("private, non-empty UTF-8");
+    await writeFile(exactFile, "x".repeat(64 * 1024 + 1), { mode: 0o600 });
+    expect(() => parseLocalFileForgeArguments([...base, "--exact-file", exactFile])).toThrow("private, non-empty UTF-8");
+    await writeFile(exactFile, new Uint8Array([0xff]), { mode: 0o600 });
+    expect(() => parseLocalFileForgeArguments([...base, "--exact-file", exactFile])).toThrow("private, non-empty UTF-8");
+    await writeFile(exactFile, new Uint8Array([0xef, 0xbb, 0xbf, 0x71]), { mode: 0o600 });
+    expect(() => parseLocalFileForgeArguments([...base, "--exact-file", exactFile])).toThrow("private, non-empty UTF-8");
+  });
+
   it("creates a private, portable, verified packet without printing paths or source", async () => {
     const root = await mkdtemp(join(tmpdir(), "evidence-local-forge-"));
     roots.push(root);
