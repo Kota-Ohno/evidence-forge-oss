@@ -17,12 +17,14 @@ import { auditEvidencePacketTransitionHistoryCollection, verifyEvidencePacketTra
 import { captureLocalCitation, promoteCandidate } from "./forge.js";
 import { inspectPacketHead, PacketHeadInspectionError } from "./packet-head-inspection.js";
 import { writePrivateFileExclusive } from "./private-file.js";
+import { parseQuickstartArguments, runQuickstart } from "./quickstart.js";
 import { assertWebSourceCapture, captureWebSource, createCandidateFromWebCapture, WebCaptureError } from "./web-capture.js";
 import { startReviewServer } from "./review-server.js";
 import { LocalWorkspace } from "./workspace.js";
 
 const arguments_ = process.argv.slice(2);
 const HELP = `Usage:
+  evidence-forge quickstart [--directory NEW_DIR]
   evidence-forge capabilities
   evidence-forge compare-capabilities --previous FILE --expected-previous-sha256 SHA256 --current FILE --expected-current-sha256 SHA256 [--out NEW_FILE]
   evidence-forge capture --workspace DIR --source FILE --exact TEXT --available-at ISO [--database FILE] [--out NEW_FILE]
@@ -55,6 +57,11 @@ const HELP = `Usage:
 
 async function main(): Promise<void> {
   const command = arguments_[0];
+  if (command === "quickstart") {
+    const directory = parseQuickstartArguments(arguments_);
+    process.stdout.write(`${JSON.stringify(await runQuickstart(directory), null, 2)}\n`);
+    return;
+  }
   if (command === "capabilities") {
     process.stdout.write(`${JSON.stringify(createCliCapabilities(), null, 2)}\n`);
     return;
@@ -491,6 +498,6 @@ async function assertOutputAvailable(): Promise<void> {
 
 await runCli(main, {
   arguments: arguments_, help: HELP,
-  pathOptions: ["workspace", "source", "out", "candidate", "evidence", "packet", "packet-index", "packet-audit-receipt", "bundle", "lineage", "current-lineage", "next-bundle", "transition-receipt", "current-index", "evidence-packet", "evidence-packet-index", "evidence-packet-audit-receipt", "evidence-packet-bundle", "evidence-packet-lineage", "capture", "database", "stack-report", "stack-signature", "trusted-public-key", "stack-bundle", "trust-history", "trust-manifest", "release-index", "archive-audit-receipt", "upgrade-history-index", "upgrade-history-audit-receipt", "workspace-acceptance-receipt", "lineage-continuity-receipt", "packet-transition-history-index", "packet-transition-history-audit-receipt", "previous", "current"],
+  pathOptions: ["directory", "workspace", "source", "out", "candidate", "evidence", "packet", "packet-index", "packet-audit-receipt", "bundle", "lineage", "current-lineage", "next-bundle", "transition-receipt", "current-index", "evidence-packet", "evidence-packet-index", "evidence-packet-audit-receipt", "evidence-packet-bundle", "evidence-packet-lineage", "capture", "database", "stack-report", "stack-signature", "trusted-public-key", "stack-bundle", "trust-history", "trust-manifest", "release-index", "archive-audit-receipt", "upgrade-history-index", "upgrade-history-audit-receipt", "workspace-acceptance-receipt", "lineage-continuity-receipt", "packet-transition-history-index", "packet-transition-history-audit-receipt", "previous", "current"],
   errorPrefix: "Evidence Forge failed",
 });

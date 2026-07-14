@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Add a local quickstart with a deterministic portable packet and path-free
+  result that exercises capture, explicit promotion, packet export, and offline
+  verification without network access, source-text output, or existing-path
+  replacement.
+- Reject unknown, duplicate, missing, and positional quickstart arguments, and
+  update pnpm 11 examples to pass script arguments directly.
+
 ## 6.3.1 — 2026-07-14
 
 - Aligned the Evidence promotion adapter with the shared private Sol Ledger

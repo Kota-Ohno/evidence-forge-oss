@@ -73,6 +73,7 @@ test("release package allowlist rejects development-only files", () => {
     "package/dist/src/lineage-continuity-receipt-cli.js",
     "package/dist/src/current-lineage-continuity-preflight-cli.js",
     "package/dist/src/offline-self-test-cli.js",
+    "package/dist/src/quickstart.js",
     "package/dist/src/cli.js", "package/dist/src/index.js",
   ];
   assert.doesNotThrow(() => assertPackageEntries(entries));

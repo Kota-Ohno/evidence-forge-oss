@@ -101,7 +101,7 @@ accessは明示し、public releaseやtrusted timestampを主張しない。
 保持したheadを使って軽量検証できる。
 
 ```text
-pnpm readiness:verify -- \
+pnpm readiness:verify \
   --receipt private-readiness.json \
   --expected-sha256 RECEIPT_SHA256
 ```

@@ -1,15 +1,101 @@
 # Evidence Forge
 
-Local-first tooling for turning source-backed observations into verified evidence.
+Evidence Forge helps researchers, auditors, and AI-tool builders turn a
+source-backed observation into locally verifiable Evidence. It keeps the source
+snapshot, exact quote, availability time, and integrity binding together so a
+reviewer can distinguish “someone observed this” from “this passed an explicit
+promotion gate.”
 
-For the shortest production-oriented workflow, start with the
+Evidence Forge stores immutable source snapshots, records exact citation
+selectors, and refuses promotion when source integrity or citation verification
+fails. **An observation is only a candidate; promotion is always explicit.**
+
+> **Installation status:** this repository is currently private and the package
+> has `private: true`; it is not published to npm. Clone it from an account with
+> access. pnpm is the supported package manager.
+
+## Shortest path
+
+Requires Node.js 24.4 or newer. The repository pins pnpm 11.0.8; if `corepack`
+is unavailable but that pnpm version is already installed, skip the
+`corepack enable` line. Start with the local-only tutorial, whose portable
+packet and path-free result are deterministic:
+
+```bash
+git clone https://github.com/Kota-Ohno/evidence-forge-oss.git
+cd evidence-forge-oss
+corepack enable
+pnpm install --frozen-lockfile --ignore-scripts
+pnpm --silent quickstart --directory ./my-first-evidence
+```
+
+The directory must not already exist. The command creates private local tutorial
+files for capture, explicit promotion, portable packet export, and offline
+verification. It does not access the network, overwrite an existing directory,
+print the source text, or claim trusted time.
+The `--silent` flag also prevents pnpm from echoing a caller-supplied output
+path; the application result itself contains artifact names, IDs, and hashes
+but no absolute local path.
+
+For your own source, run the same critical transition manually:
+
+```bash
+pnpm build
+
+printf '%s\n' 'A uniquely identifying quote' > notes.txt
+pnpm capture \
+  --workspace .evidence-forge \
+  --source notes.txt \
+  --exact "A uniquely identifying quote" \
+  --available-at 2026-07-11T00:00:00Z \
+  --database .evidence-forge/workspace.sqlite \
+  --out candidate.json
+pnpm promote \
+  --candidate candidate.json \
+  --database .evidence-forge/workspace.sqlite \
+  --out evidence.json
+```
+
+`capture` creates a Candidate and retains its content-addressed snapshot.
+`promote` rechecks the snapshot, exact quote, context, and timestamps before it
+can create VerifiedEvidence. For the complete operational workflow, use the
 [operator runbook](docs/OPERATOR.md).
-The [v1 trust-boundary audit](docs/TRUST-AUDIT.md) states what remains an
-operator or external-system responsibility.
 
-Evidence Forge stores immutable source snapshots, records exact citation selectors,
-and refuses promotion when source integrity or citation verification fails. An
-observation is only a candidate; promotion is an explicit, validated operation.
+## Everyday workflows
+
+- Capture a local file, then explicitly promote only the candidates you accept.
+- Capture bounded public HTTP(S) content, preview citation matching offline, and
+  cite the retained response without refetching it.
+- Review candidates, rejected attempts, and verified Evidence in the local
+  Review Workspace backed by SQLite.
+- Export a portable packet for standalone offline verification against a digest
+  retained through a separate channel.
+
+The detailed commands and contracts remain below; start with local
+`capture → promote`, then add web capture, Review Workspace, or packet export only
+when the use case needs them.
+
+## Role in the ecosystem
+
+Evidence Forge is the evidence-authoring and promotion layer.
+[Agent Black Box](https://github.com/Kota-Ohno/agent-black-box-oss) records
+privacy-bounded execution observations, and
+[Sol Ledger Protocol](https://github.com/Kota-Ohno/sol-ledger-protocol-oss)
+provides shared provenance contracts. The
+[Ecosystem Acceptance Kit](https://github.com/Kota-Ohno/ecosystem-acceptance-kit-oss)
+checks exact private revisions and packed behavior together.
+
+## Safety limits
+
+- Promotion verifies source and citation consistency; it does not prove that the
+  source was truthful, unbiased, or legally usable.
+- Local wall-clock timestamps are not trusted timestamps. External anchors,
+  signer trust, retention, and independent review remain operator responsibilities.
+- Web capture performs network access and denies non-public targets by default;
+  do not enable private-address access for untrusted URLs.
+- Keep workspaces, source snapshots, private keys, and trusted heads private.
+  Read the [trust-boundary audit](docs/TRUST-AUDIT.md) before making assurance
+  claims and [release readiness](docs/RELEASE-READINESS.md) before publication.
 
 ![Evidence Forge Review Workspace](docs/assets/review-workspace.jpg)
 
@@ -479,7 +565,7 @@ Run the complete private stack acceptance flow with local checkouts of the other
 two repositories:
 
 ```bash
-pnpm dogfood:stack -- \
+pnpm dogfood:stack \
   --agent-black-box ../agent-black-box \
   --sol-ledger ../sol-ledger-protocol \
   --output .evidence-forge/stack-run
@@ -502,8 +588,8 @@ Optionally create a detached local Ed25519 signature with a pre-existing 0600
 private key (the key is read locally and never copied into output):
 
 ```bash
-pnpm sign:report -- --report report.json --private-key signer-a-private.pem --out report.a.sig.json
-pnpm sign:report -- --report report.json --private-key signer-b-private.pem --out report.b.sig.json
+pnpm sign:report --report report.json --private-key signer-a-private.pem --out report.a.sig.json
+pnpm sign:report --report report.json --private-key signer-b-private.pem --out report.b.sig.json
 node dist/src/cli.js review --database workspace.sqlite --stack-report report.json \
   --stack-signature report.a.sig.json --stack-signature report.b.sig.json \
   --trusted-public-key signer-a-public.pem --trusted-public-key signer-b-public.pem \
@@ -524,7 +610,7 @@ comes from key IDs obtained through an independent channel, not from keys merely
 present inside the bundle:
 
 ```bash
-pnpm bundle:report -- --report report.json \
+pnpm bundle:report --report report.json \
   --signature report.a.sig.json --signature report.b.sig.json \
   --public-key signer-a-public.pem --public-key signer-b-public.pem \
   --out review.bundle.json
@@ -561,7 +647,7 @@ SHA-256-pinned packaged schemas without probing commands or source paths.
 Two retained manifests can be checked offline with `evidence-forge
 compare-capabilities`; removals and schema/error-contract mutations are treated
 as breaking, produce a closed path-free receipt, and exit with status 2.
-For release rehearsal, `pnpm acceptance:capabilities -- --help` verifies two
+For release rehearsal, `pnpm acceptance:capabilities --help` verifies two
 signed release packs, installs each generation independently, and exercises the
 comparison through the newer packed CLI rather than repository imports.
 Compatibility receipts also report required and actual SemVer bump. An
@@ -583,7 +669,7 @@ reordering, and valid-prefix rollback detectable.
 every supplied binding receipt to a pinned history entry, rejects missing,
 unexpected, or duplicate files, and revalidates all release/evidence cross-links.
 Repository release rehearsal can rebuild the entire chain from three or more
-signed packs with `pnpm acceptance:upgrade-archive -- --help`. The shell-free
+signed packs with `pnpm acceptance:upgrade-archive --help`. The shell-free
 command derives each adjacent installed transition, seals and binds it, builds
 and audits the history, then proves omission and valid-prefix rollback rejection.
 The local Review Workspace can display that upgrade continuity when both the
@@ -597,7 +683,7 @@ Reproduce that installed browser boundary from one externally pinned signed pack
 without relying on the source checkout's CLI implementation:
 
 ```bash
-pnpm acceptance:upgrade-workspace -- \
+pnpm acceptance:upgrade-workspace \
   --release-pack release.evidence-pack.json \
   --release-pack-sha256 EXPECTED_PACK_SHA256 \
   --release-key-id EXPECTED_PROVENANCE_KEY_ID \
@@ -666,7 +752,7 @@ signed by the immediately preceding policy, so removing an entry, reversing
 time, or replacing signers without the old quorum fails closed:
 
 ```bash
-pnpm rotate:trust -- \
+pnpm rotate:trust \
   --effective-at 2026-07-13T00:00:00.000Z \
   --trusted-public-key signer-a-public.pem --trusted-public-key signer-b-public.pem \
   --signature-threshold 2 \
@@ -674,7 +760,7 @@ pnpm rotate:trust -- \
   --authorizing-private-key signer-b-private.pem \
   --out trust-history-1.json
 
-pnpm rotate:trust -- --history trust-history-1.json \
+pnpm rotate:trust --history trust-history-1.json \
   --anchor-key-id INITIAL_A_SHA256 --anchor-key-id INITIAL_B_SHA256 \
   --anchor-threshold 2 --history-sha256 TRUST_HISTORY_1_SHA256 \
   --effective-at 2026-10-13T00:00:00.000Z \
@@ -728,7 +814,7 @@ Run the named fail-closed regression matrix independently with
 Rehearse lineage continuity across two independently pinned private releases:
 
 ```bash
-pnpm acceptance:lineage -- \
+pnpm acceptance:lineage \
   --older-pack older.evidence-pack.json --older-pack-sha256 OLDER_PACK_SHA256 --older-key-id OLDER_KEY_ID \
   --newer-pack newer.evidence-pack.json --newer-pack-sha256 NEWER_PACK_SHA256 --newer-key-id NEWER_KEY_ID \
   --output .evidence-forge/lineage-continuity

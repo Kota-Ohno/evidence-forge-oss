@@ -53,7 +53,7 @@ Apple silicon / macOS / Node.js v26.0.0での参考値です。
 pnpm benchmark:max-lineage:stable > baseline.json
 # 比較対象のrevisionへ移動し、同じ端末・低負荷状態で実行
 pnpm benchmark:max-lineage:stable > candidate.json
-pnpm benchmark:compare -- baseline.json candidate.json
+pnpm benchmark:compare baseline.json candidate.json
 ```
 
 既定では、累積appendまたは完全再検証がbaselineの1.25倍を「最終checkpoint」または
