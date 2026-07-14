@@ -1,4 +1,4 @@
-import { execFileSync, spawn } from "node:child_process";
+import { execFileSync, spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -97,6 +97,8 @@ export function assertPackageEntries(entries) {
     "package/dist/src/current-lineage-continuity-preflight-cli.js",
     "package/dist/src/offline-self-test-cli.js",
     "package/dist/src/quickstart.js",
+    "package/dist/src/local-file-forge.js",
+    "package/dist/src/local-evidence-pipeline.js",
     "package/dist/src/cli.js", "package/dist/src/index.js",
   ]) {
     if (!entries.includes(required)) throw new Error(`Package is missing ${required}`);
@@ -148,6 +150,53 @@ export function verifyInstalledPackage({ alreadyBuilt = false } = {}) {
     for (const name of Object.values(quickstart.artifacts)) {
       if ((statSync(join(quickstartDirectory, name)).mode & 0o777) !== 0o600) {
         throw new Error("Installed quickstart artifact permissions are not private");
+      }
+    }
+    const forgeSource = join(consumer, "forge-source.txt");
+    const forgeDirectory = join(consumer, "forged-evidence");
+    writeFileSync(forgeSource, "Installed package keeps one exact local observation.\n", { mode: 0o600 });
+    const documentedDirectory = join(consumer, "documented-forged-evidence");
+    const documentedArguments = [
+      "--silent", "forge", "--source", forgeSource,
+      "--exact", "one exact local observation",
+      "--available-at", "2026-07-11T00:00:00Z",
+      "--directory", documentedDirectory,
+      "--promote-immediately",
+    ];
+    const documentedRun = spawnSync("pnpm", documentedArguments, {
+      cwd: REPOSITORY_ROOT, encoding: "utf8", maxBuffer: 4 * 1024 * 1024, timeout: 120_000,
+    });
+    const documentedOutput = `${documentedRun.stdout ?? ""}${documentedRun.stderr ?? ""}`;
+    if (documentedRun.status !== 0 || JSON.parse(String(documentedRun.stdout)).outcome !== "verified" ||
+        documentedOutput.includes(consumer) || documentedOutput.includes(forgeSource) ||
+        documentedOutput.includes("one exact local observation")) {
+      throw new Error("Documented silent pnpm forge path leaked caller input or failed");
+    }
+    const forged = JSON.parse(run(mainBinary, [
+      "forge-local", "--source", forgeSource,
+      "--exact", "one exact local observation",
+      "--available-at", "2026-07-11T00:00:00Z",
+      "--directory", forgeDirectory,
+      "--promote-immediately",
+    ], { cwd: consumer }));
+    const missingConfirmation = assertStructuredError(mainBinary, consumer, [
+      "forge-local", "--source", forgeSource,
+      "--exact", "one exact local observation",
+      "--available-at", "2026-07-11T00:00:00Z",
+      "--directory", join(consumer, "unconfirmed-evidence"),
+      "--error-format", "json",
+    ]);
+    if (forged.kind !== "EvidenceForgeLocalFileResult" || forged.outcome !== "verified" ||
+        forged.assurance?.promotionPreauthorized !== true ||
+        forged.assurance?.existingFilesOverwritten !== false ||
+        JSON.stringify(forged).includes(consumer) ||
+        missingConfirmation.code !== "PROMOTION_PREAUTHORIZATION_REQUIRED" || missingConfirmation.message.includes(consumer) ||
+        (statSync(forgeDirectory).mode & 0o777) !== 0o700) {
+      throw new Error("Installed local-file forge contract failed");
+    }
+    for (const name of Object.values(forged.artifacts)) {
+      if ((statSync(join(forgeDirectory, name)).mode & 0o777) !== 0o600) {
+        throw new Error("Installed local-file forge artifact permissions are not private");
       }
     }
     const selfTestBinary = join(binRoot, "evidence-forge-self-test");
@@ -1610,6 +1659,8 @@ try {
       currentLineageContinuityPreflightVerified: true,
       offlineSelfTestVerified: true,
       quickstartVerified: true,
+      localFileForgeVerified: true,
+      documentedLocalFileForgeVerified: true,
       cliReviewWorkflowVerified: true,
       packetCollectionVerified: true,
       packetHeadInspectionVerified: true,

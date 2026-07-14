@@ -1,8 +1,8 @@
 import { mkdir } from "node:fs/promises";
 import { join, resolve } from "node:path";
-import type { EvidenceCandidate, VerifiedEvidence } from "./domain.js";
-import { createEvidencePacket, verifyEvidencePacket } from "./evidence-packet.js";
-import { captureLocalCitation, promoteCandidate } from "./forge.js";
+import type { EvidenceCandidate } from "./domain.js";
+import { captureLocalCitation } from "./forge.js";
+import { runLocalEvidencePipeline } from "./local-evidence-pipeline.js";
 import { writePrivateFileExclusive } from "./private-file.js";
 
 const SOURCE_TEXT = [
@@ -105,13 +105,11 @@ export async function runQuickstart(directory: string): Promise<QuickstartResult
 
   // This is the only transition that creates evidence. Packet creation also
   // independently replays this gate before exporting the portable artifact.
-  const promoted = await promoteCandidate(candidate, () => new Date(VERIFIED_AT));
-  const evidence: VerifiedEvidence = { ...promoted, id: EVIDENCE_ID };
+  const { evidence, packet, verification } = await runLocalEvidencePipeline(candidate, {
+    now: () => new Date(VERIFIED_AT), evidenceId: EVIDENCE_ID,
+  });
   await writeJson(join(directory, ARTIFACTS.evidence), evidence);
-
-  const packet = await createEvidencePacket(candidate, evidence);
   await writeJson(join(directory, ARTIFACTS.packet), packet);
-  const verification = await verifyEvidencePacket(packet, packet.integrity.packetSha256);
   await writeJson(join(directory, ARTIFACTS.verification), verification);
 
   const result: QuickstartResult = {

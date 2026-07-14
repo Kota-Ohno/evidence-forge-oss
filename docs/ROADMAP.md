@@ -160,6 +160,12 @@ its stated verification passes.
   avoid a nested package-manager launch, remain below 700 ms median on the
   documented reference scenario, and pass the full repository and package smoke
   checks.
+- [x] **M140 — one-command real local Evidence.** Done when one preauthorized
+  immediate-promotion command turns a caller-selected local file and unique
+  quote into a private verified portable packet while replaying the promotion
+  gate, refusing unsafe/existing output paths, printing no source/path data, and
+  staying below the documented 500 ms direct-CLI and 700 ms repository-command
+  median targets.
 - [ ] **M138 — clean-history ecosystem acceptance.** Done when the public
   candidates complete packed acceptance and receive explicit approval before
   any visibility or package publication change.

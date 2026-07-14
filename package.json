@@ -48,6 +48,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "quickstart": "tsc -b tsconfig.build.json && node dist/src/cli.js quickstart",
+    "forge": "tsc -b tsconfig.build.json && node dist/src/cli.js forge-local",
     "capture": "node dist/src/cli.js capture",
     "promote": "node dist/src/cli.js promote",
     "compatibility:sol-ledger": "pnpm build && node scripts/verify-sol-ledger-compatibility.mjs",
@@ -57,6 +58,7 @@
     "audit:secrets": "node scripts/audit-secrets.mjs",
     "benchmark:max-lineage": "pnpm build && node scripts/benchmark-max-lineage.mjs",
     "benchmark:max-lineage:stable": "pnpm build && node scripts/benchmark-max-lineage.mjs --samples 3",
+    "benchmark:local-forge": "pnpm build && node scripts/benchmark-local-forge.mjs",
     "benchmark:compare": "node scripts/compare-max-lineage-benchmarks.mjs",
     "readiness:private": "node scripts/private-readiness.mjs",
     "readiness:verify": "pnpm build && node scripts/verify-private-readiness.mjs",
@@ -81,7 +83,7 @@
     "verify:review": "pnpm build && node dist/src/verify-review-cli.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint .",
-    "test": "vitest run src && node --test scripts/audit-secrets.test.mjs scripts/benchmark-max-lineage.test.mjs scripts/compare-max-lineage-benchmarks.test.mjs scripts/dogfood-stack.test.mjs scripts/generate-production-sbom.test.mjs scripts/private-readiness.test.mjs scripts/validate-production-sbom.test.mjs scripts/verify-cross-release-archive.test.mjs scripts/verify-private-readiness.test.mjs scripts/verify-real-capability-transition.test.mjs scripts/verify-cross-release-upgrade-archive.test.mjs scripts/verify-cross-release-lineage.test.mjs scripts/verify-packed-upgrade-workspace.test.mjs",
+    "test": "vitest run src && node --test scripts/audit-secrets.test.mjs scripts/benchmark-local-forge.test.mjs scripts/benchmark-max-lineage.test.mjs scripts/compare-max-lineage-benchmarks.test.mjs scripts/dogfood-stack.test.mjs scripts/generate-production-sbom.test.mjs scripts/private-readiness.test.mjs scripts/validate-production-sbom.test.mjs scripts/verify-cross-release-archive.test.mjs scripts/verify-private-readiness.test.mjs scripts/verify-real-capability-transition.test.mjs scripts/verify-cross-release-upgrade-archive.test.mjs scripts/verify-cross-release-lineage.test.mjs scripts/verify-packed-upgrade-workspace.test.mjs",
     "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build",
     "prepack": "pnpm build"
   },

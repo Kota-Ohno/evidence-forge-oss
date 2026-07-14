@@ -74,6 +74,8 @@ test("release package allowlist rejects development-only files", () => {
     "package/dist/src/current-lineage-continuity-preflight-cli.js",
     "package/dist/src/offline-self-test-cli.js",
     "package/dist/src/quickstart.js",
+    "package/dist/src/local-file-forge.js",
+    "package/dist/src/local-evidence-pipeline.js",
     "package/dist/src/cli.js", "package/dist/src/index.js",
   ];
   assert.doesNotThrow(() => assertPackageEntries(entries));

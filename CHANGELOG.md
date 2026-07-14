@@ -10,6 +10,10 @@
   update pnpm 11 examples to pass script arguments directly.
 - Cache TypeScript build state outside packaged output and remove a nested pnpm
   launch so repeated repository quickstarts reach verified Evidence faster.
+- Add a one-process local-file forge command that requires immediate-promotion
+  preauthorization, creates and verifies a portable packet in a new private
+  directory, removes identity-matched partial output on failure, and returns a
+  path-free result.
 
 ## 6.3.1 — 2026-07-14
 
