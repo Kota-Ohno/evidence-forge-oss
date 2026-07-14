@@ -47,6 +47,12 @@ test("benchmark comparison reports relative regressions without absolute claims"
   const regressed = compareBenchmarks(benchmark(), benchmark(1.3));
   assert.equal(regressed.outcome, "regressed");
   assert.equal(regressed.checkpoints.every((checkpoint) => !checkpoint.withinLimit), true);
+  const noisyEarlyCheckpoint = benchmark();
+  noisyEarlyCheckpoint.checkpoints[0].cumulativeAppendMilliseconds *= 1.3;
+  const noiseTolerant = compareBenchmarks(benchmark(), noisyEarlyCheckpoint);
+  assert.equal(noiseTolerant.outcome, "verified");
+  assert.equal(noiseTolerant.checkpoints[0].withinLimit, false);
+  assert.equal(noiseTolerant.assurance.regressionRequiresFinalOrTwoCheckpoints, true);
 });
 
 test("benchmark comparison rejects incomparable or structurally changed runs", () => {

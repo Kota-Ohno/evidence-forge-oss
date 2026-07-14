@@ -718,7 +718,7 @@ async function route(request: IncomingMessage, response: ServerResponse, workspa
     const packetReview = packetReviews?.find((review) => review.summary.id === candidateId);
     if (packetReview) { sendJson(response, 200, packetReview.detail); return; }
     if (!workspace) { sendJson(response, 404, { error: "Candidate not found" }); return; }
-    const item = workspace.listReviewItems(MAX_REVIEW_ITEMS).find((entry) => entry.candidate.id === candidateId);
+    const item = workspace.getReviewItem(candidateId);
     if (!item) { sendJson(response, 404, { error: "Candidate not found" }); return; }
     const context = await sourceContext(item);
     sendJson(response, 200, {

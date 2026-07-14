@@ -1,9 +1,10 @@
 import type { EvidenceCandidate, SourceSnapshot, TextQuoteSelector, VerifiedEvidence } from "./domain.js";
 import { PromotionError } from "./domain.js";
 import { assertCitationView, CitationViewError } from "./html-citation-view.js";
+import { MAX_SOURCE_BYTES } from "./limits.js";
+import { parseTimestamp } from "./timestamp.js";
 
 const SHA256 = /^[0-9a-f]{64}$/u;
-const RFC3339 = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?(?:Z|[+-]\d{2}:\d{2})$/u;
 const MAX_TEXT_BYTES = 1024 * 1024;
 
 export function assertEvidenceCandidate(value: unknown): asserts value is EvidenceCandidate {
@@ -36,7 +37,8 @@ export function assertSourceSnapshot(value: unknown): asserts value is SourceSna
   exactKeys(record, ["mediaType", "sha256", "byteLength", "objectPath", "sourceUri", "capturedAt", "availableAt"]);
   assertBoundedString(record.mediaType, 256, false);
   if (typeof record.sha256 !== "string" || !SHA256.test(record.sha256)) invalid();
-  if (!Number.isSafeInteger(record.byteLength) || (record.byteLength as number) < 0) invalid();
+  if (!Number.isSafeInteger(record.byteLength) || (record.byteLength as number) < 0 ||
+      (record.byteLength as number) > MAX_SOURCE_BYTES) invalid();
   assertBoundedString(record.objectPath, 4096, false);
   assertBoundedString(record.sourceUri, 4096, false);
   assertTimestamp(record.capturedAt);
@@ -99,14 +101,16 @@ function assertBoundedCharacters(value: unknown, maxLength: number, emptyAllowed
 }
 
 function assertTimestamp(value: unknown): asserts value is string {
-  if (typeof value !== "string" || value.length > 64 || !RFC3339.test(value) || Number.isNaN(Date.parse(value))) {
+  if (typeof value !== "string" || value.length > 64) {
     throw new PromotionError("INVALID_TIMESTAMP", "Evidence envelope timestamp is invalid");
   }
+  try { parseTimestamp(value); }
+  catch { throw new PromotionError("INVALID_TIMESTAMP", "Evidence envelope timestamp is invalid"); }
 }
 
 function assertOrder(...values: string[]): void {
   for (let index = 1; index < values.length; index += 1) {
-    if (Date.parse(values[index] as string) < Date.parse(values[index - 1] as string)) {
+    if (parseTimestamp(values[index] as string) < parseTimestamp(values[index - 1] as string)) {
       throw new PromotionError("TIMESTAMP_ORDER_INVALID", "Evidence envelope timestamps are out of order");
     }
   }

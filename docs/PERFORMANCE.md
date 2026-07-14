@@ -56,8 +56,9 @@ pnpm benchmark:max-lineage:stable > candidate.json
 pnpm benchmark:compare -- baseline.json candidate.json
 ```
 
-既定では、どのcheckpointでも累積appendまたは完全再検証がbaselineの1.25倍を超えると
-exit 2の `regressed` になります。`--max-ratio 1.5` のように1–3の範囲で変更できます。
+既定では、累積appendまたは完全再検証がbaselineの1.25倍を「最終checkpoint」または
+「2つ以上のcheckpoint」で超えるとexit 2の `regressed` になります。短い初期checkpoint
+1点だけの揺らぎは記録しつつ合否には使わず、`--max-ratio 1.5` のように1–3の範囲で変更できます。
 3 sample未満、runtime familyの不一致、lineage sizeの変化、壊れた入力は性能比較せずexit 1で
 停止します。結果は入力pathや絶対時間を含まず、相対ratioだけを報告します。
 
@@ -65,3 +66,17 @@ repositoryの既定baselineは `benchmarks/max-lineage-darwin-arm64-node26.json`
 readiness receiptはbaselineとcandidate benchmarkのcanonical SHA-256を両方保持し、ratioが
 どの2結果から得られたかをpathなしで固定します。別runtimeでは対応するstable baselineを
 `--baseline` で明示し、暗黙に比較対象を置き換えません。
+
+## Review list query (2026-07-14)
+
+500 candidatesのreview一覧を同一端末・同一SQLite fixtureで3回測定しました。最新のpromotion
+attemptをcandidateごとの追加queryではなく一覧SQLへ統合した結果です。
+
+| fixture | before | after |
+| --- | ---: | ---: |
+| 1文字quote × 500 | 8.49–15.19 ms | 2.90–3.53 ms |
+| 100,000文字quote × 500 | 122.56 ms | 117.52–120.24 ms |
+
+小さい通常recordではN+1 query除去の効果が大きく、巨大recordではJSON parseとenvelope検証が
+支配的です。詳細APIは一覧500件の全parseを廃止し、candidate IDのindexed lookup 1件だけを
+行うため、古いcandidateが誤って404になる問題も同時に解消しています。

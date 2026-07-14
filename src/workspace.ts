@@ -335,42 +335,41 @@ export class LocalWorkspace {
              c.candidate_id AS candidate_row_id, e.evidence_id AS evidence_row_id,
              e.candidate_id AS evidence_candidate_row_id,
              p.sequence AS promotion_sequence, p.evidence_id, p.snapshot_ref,
-             p.promoted_at, p.previous_record_sha256, p.record_sha256
+             p.promoted_at, p.previous_record_sha256, p.record_sha256,
+             a.sequence AS attempt_sequence, a.attempt_id, a.attempted_at,
+             a.outcome AS attempt_outcome, a.failure_code, a.failure_message
       FROM candidates c
       LEFT JOIN verified_evidence e ON e.candidate_id = c.candidate_id
       LEFT JOIN promotion_history p ON p.candidate_id = c.candidate_id
+      LEFT JOIN promotion_attempts a ON a.sequence = (
+        SELECT sequence FROM promotion_attempts
+        WHERE candidate_id = c.candidate_id ORDER BY sequence DESC LIMIT 1
+      )
       ORDER BY c.persisted_at DESC, c.candidate_id LIMIT ?
     `).all(limit) as unknown as Array<Record<string, unknown>>;
-    return rows.map((row) => {
-      const candidate = parseJson(String(row.candidate_json));
-      assertEvidenceCandidate(candidate);
-      if (candidate.id !== row.candidate_row_id) invalidStoredEnvelope();
-      const evidence = row.evidence_json === null
-        ? undefined
-        : parseJson(databaseString(row.evidence_json, "evidence_json"));
-      if (evidence !== undefined) {
-        assertVerifiedEvidence(evidence);
-        if (evidence.id !== row.evidence_row_id || evidence.candidateId !== row.evidence_candidate_row_id) {
-          invalidStoredEnvelope();
-        }
-        assertEvidenceBinding(evidence, candidate);
-      }
-      const latestAttempt = this.listPromotionAttempts(candidate.id, 1)[0];
-      const promotion = row.promotion_sequence === null ? undefined : {
-        sequence: Number(row.promotion_sequence), candidateId: candidate.id,
-        evidenceId: String(row.evidence_id), snapshotRef: String(row.snapshot_ref),
-        promotedAt: String(row.promoted_at),
-        previousRecordSha256: row.previous_record_sha256 === null
-          ? null
-          : databaseString(row.previous_record_sha256, "previous_record_sha256"),
-        recordSha256: String(row.record_sha256),
-      } satisfies PromotionRecord;
-      return {
-        candidate, ...(evidence ? { evidence } : {}), ...(latestAttempt ? { latestAttempt } : {}),
-        ...(promotion ? { promotion } : {}),
-        status: evidence ? "verified" : latestAttempt?.outcome === "rejected" ? "rejected" : "candidate",
-      };
-    });
+    return rows.map(toReviewItem);
+  }
+
+  getReviewItem(candidateId: string): ReviewItem | undefined {
+    assertIdentifier(candidateId, "candidate id");
+    const row = this.#database.prepare(`
+      SELECT c.record_json AS candidate_json, e.record_json AS evidence_json,
+             c.candidate_id AS candidate_row_id, e.evidence_id AS evidence_row_id,
+             e.candidate_id AS evidence_candidate_row_id,
+             p.sequence AS promotion_sequence, p.evidence_id, p.snapshot_ref,
+             p.promoted_at, p.previous_record_sha256, p.record_sha256,
+             a.sequence AS attempt_sequence, a.attempt_id, a.attempted_at,
+             a.outcome AS attempt_outcome, a.failure_code, a.failure_message
+      FROM candidates c
+      LEFT JOIN verified_evidence e ON e.candidate_id = c.candidate_id
+      LEFT JOIN promotion_history p ON p.candidate_id = c.candidate_id
+      LEFT JOIN promotion_attempts a ON a.sequence = (
+        SELECT sequence FROM promotion_attempts
+        WHERE candidate_id = c.candidate_id ORDER BY sequence DESC LIMIT 1
+      )
+      WHERE c.candidate_id = ?
+    `).get(candidateId) as unknown as Record<string, unknown> | undefined;
+    return row === undefined ? undefined : toReviewItem(row);
   }
 
   getCandidate(id: string): EvidenceCandidate | undefined {
@@ -490,6 +489,41 @@ function toPromotionAttempt(row: Record<string, unknown>): PromotionAttempt {
     attemptedAt: String(row.attempted_at), outcome: row.outcome === "verified" ? "verified" : "rejected",
     failureCode: row.failure_code === null ? null : databaseString(row.failure_code, "failure_code"),
     failureMessage: row.failure_message === null ? null : databaseString(row.failure_message, "failure_message"),
+  };
+}
+
+function toReviewItem(row: Record<string, unknown>): ReviewItem {
+  const candidate = parseJson(String(row.candidate_json));
+  assertEvidenceCandidate(candidate);
+  if (candidate.id !== row.candidate_row_id) invalidStoredEnvelope();
+  const evidence = row.evidence_json === null
+    ? undefined
+    : parseJson(databaseString(row.evidence_json, "evidence_json"));
+  if (evidence !== undefined) {
+    assertVerifiedEvidence(evidence);
+    if (evidence.id !== row.evidence_row_id || evidence.candidateId !== row.evidence_candidate_row_id) {
+      invalidStoredEnvelope();
+    }
+    assertEvidenceBinding(evidence, candidate);
+  }
+  const latestAttempt = row.attempt_sequence === null ? undefined : toPromotionAttempt({
+    sequence: row.attempt_sequence, attempt_id: row.attempt_id, candidate_id: candidate.id,
+    attempted_at: row.attempted_at, outcome: row.attempt_outcome,
+    failure_code: row.failure_code, failure_message: row.failure_message,
+  });
+  const promotion = row.promotion_sequence === null ? undefined : {
+    sequence: Number(row.promotion_sequence), candidateId: candidate.id,
+    evidenceId: String(row.evidence_id), snapshotRef: String(row.snapshot_ref),
+    promotedAt: String(row.promoted_at),
+    previousRecordSha256: row.previous_record_sha256 === null
+      ? null
+      : databaseString(row.previous_record_sha256, "previous_record_sha256"),
+    recordSha256: String(row.record_sha256),
+  } satisfies PromotionRecord;
+  return {
+    candidate, ...(evidence ? { evidence } : {}), ...(latestAttempt ? { latestAttempt } : {}),
+    ...(promotion ? { promotion } : {}),
+    status: evidence ? "verified" : latestAttempt?.outcome === "rejected" ? "rejected" : "candidate",
   };
 }
 

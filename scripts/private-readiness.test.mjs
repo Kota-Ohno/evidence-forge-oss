@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildPayload, parseArguments, readinessStep, validateDependencyAudit } from "./private-readiness.mjs";
+import {
+  buildPayload, parseArguments, progressStep, readinessStep, textProgressReporter, validateDependencyAudit,
+} from "./private-readiness.mjs";
 
 test("private readiness uses a pinned local baseline and bounded ratio", () => {
   assert.deepEqual(parseArguments([]), {
@@ -68,4 +70,19 @@ test("private readiness attributes direct gate failures without leaking their ca
     assert.equal(error.message.includes("sensitive"), false);
     return true;
   });
+});
+
+test("private readiness reports deterministic path-free step progress", async () => {
+  const lines = [];
+  let now = 1_000;
+  const reporter = textProgressReporter((line) => lines.push(line));
+  const result = await progressStep("packedInstallSmoke", 5, 10, () => {
+    now = 2_250;
+    return "verified";
+  }, reporter, () => now);
+  assert.equal(result, "verified");
+  assert.deepEqual(lines, [
+    "[5/10] start packedInstallSmoke\n",
+    "[5/10] done packedInstallSmoke (1.3s)\n",
+  ]);
 });

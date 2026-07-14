@@ -53,5 +53,8 @@ describe("portable Evidence envelopes", () => {
       .toThrow("Derived citation view metadata is invalid");
     expect(() => { assertVerifiedEvidence({ ...evidence, verifiedAt: "2026-07-10T03:00:00.000Z" }); })
       .toThrow("timestamps are out of order");
+    expect(() => { assertEvidenceCandidate({
+      ...candidate, observedAt: "2026-02-30T02:00:00.000Z",
+    }); }).toThrow("timestamp is invalid");
   });
 });

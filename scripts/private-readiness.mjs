@@ -23,6 +23,27 @@ export async function readinessStep(name, operation) {
   }
 }
 
+export async function progressStep(name, position, total, operation, reporter, now = performance.now.bind(performance)) {
+  const startedAt = now();
+  reporter({ name, position, total, state: "started", elapsedMs: 0 });
+  try {
+    const value = await readinessStep(name, operation);
+    reporter({ name, position, total, state: "completed", elapsedMs: now() - startedAt });
+    return value;
+  } catch (error) {
+    reporter({ name, position, total, state: "failed", elapsedMs: now() - startedAt });
+    throw error;
+  }
+}
+
+export function textProgressReporter(write = (line) => process.stderr.write(line)) {
+  return ({ name, position, total, state, elapsedMs }) => {
+    const marker = state === "completed" ? "done" : state === "failed" ? "failed" : "start";
+    const elapsed = state === "started" ? "" : ` (${(elapsedMs / 1000).toFixed(1)}s)`;
+    write(`[${String(position)}/${String(total)}] ${marker} ${name}${elapsed}\n`);
+  };
+}
+
 export function parseArguments(argv) {
   let baselinePath = DEFAULT_BASELINE;
   let maxRatio = 1.25;
@@ -147,62 +168,58 @@ export function buildPayload({
   };
 }
 
-export async function runPrivateReadiness(options) {
-  command("repositoryCheck", "pnpm", ["check"]);
-  const dependencyCount = validateDependencyAudit(json(
-    "productionDependencyAudit",
-    command("productionDependencyAudit", "pnpm", ["audit", "--prod", "--json"]),
+export async function runPrivateReadiness(options, { reporter = () => {}, now = performance.now.bind(performance) } = {}) {
+  const total = 10;
+  let position = 0;
+  const step = (name, operation) => progressStep(name, position += 1, total, operation, reporter, now);
+  await step("repositoryCheck", () => command("repositoryCheck", "pnpm", ["check"]));
+  const dependencyCount = await step("productionDependencyAudit", () => validateDependencyAudit(json(
+    "productionDependencyAudit", command("productionDependencyAudit", "pnpm", ["audit", "--prod", "--json"]),
+  )));
+  const secretAudit = await step("dedicatedSecretAudit", () => json(
+    "dedicatedSecretAudit", command("dedicatedSecretAudit", process.execPath, ["scripts/audit-secrets.mjs"]),
   ));
-  const secretAudit = json(
-    "dedicatedSecretAudit",
-    command("dedicatedSecretAudit", process.execPath, ["scripts/audit-secrets.mjs"]),
-  );
-  const selfTest = json(
-    "offlineInstalledSelfTest",
-    command("offlineInstalledSelfTest", process.execPath, ["dist/src/offline-self-test-cli.js", "run"]),
-  );
-  const smoke = json(
-    "packedInstallSmoke",
-    command("packedInstallSmoke", process.execPath, ["scripts/verify-package-install.mjs"]),
-  );
-  const benchmark = await readinessStep(
-    "maximumLineageBenchmark", () => runBenchmark({ samples: 3 }),
-  );
-  const baseline = await readinessStep(
-    "relativePerformanceGate", () => loadBenchmarkFile(options.baselinePath),
-  );
-  const comparison = await readinessStep(
-    "relativePerformanceGate", () => compareBenchmarks(baseline, benchmark, options.maxRatio),
-  );
-  if (comparison.outcome !== "verified") {
-    throw new ReadinessStepError("relativePerformanceGate", "relative performance gate detected a regression");
-  }
-  const packageVersion = await readinessStep(
+  const selfTest = await step("offlineInstalledSelfTest", () => json(
+    "offlineInstalledSelfTest", command("offlineInstalledSelfTest", process.execPath, ["dist/src/offline-self-test-cli.js", "run"]),
+  ));
+  const smoke = await step("packedInstallSmoke", () => json(
+    "packedInstallSmoke", command("packedInstallSmoke", process.execPath, ["scripts/verify-package-install.mjs"]),
+  ));
+  const benchmark = await step("maximumLineageBenchmark", () => runBenchmark({ samples: 3 }));
+  const { baseline, comparison } = await step("relativePerformanceGate", () => {
+    const baseline = loadBenchmarkFile(options.baselinePath);
+    const comparison = compareBenchmarks(baseline, benchmark, options.maxRatio);
+    if (comparison.outcome !== "verified") {
+      throw new ReadinessStepError("relativePerformanceGate", "relative performance gate detected a regression");
+    }
+    return { baseline, comparison };
+  });
+  const packageVersion = await step(
     "packageMetadata", () => json("packageMetadata", readFileSync("package.json", "utf8")).version,
   );
-  const { canonicalJsonSha256 } = await readinessStep(
-    "receipt", () => import("../dist/src/sol-ledger.js"),
-  );
-  const { sbom, sbomValidation } = await readinessStep("productionSbomValidation", () => {
+  const { sbom, sbomValidation } = await step("productionSbomValidation", () => {
     const generated = generateProductionSbom();
     return { sbom: generated, sbomValidation: validateProductionSbom(generated) };
   });
-  const payload = await readinessStep("receipt", () => buildPayload({
-    packageVersion, dependencyCount, secretAudit, selfTest, smoke, benchmark, comparison,
-    baselineSha256: canonicalJsonSha256(baseline),
-    candidateBenchmarkSha256: canonicalJsonSha256(benchmark),
-    sbomValidation,
-    sbomSha256: canonicalJsonSha256(sbom),
-  }));
-  return {
-    ...payload,
-    integrity: { algorithm: "sha256-jcs", receiptSha256: canonicalJsonSha256(payload) },
-  };
+  return await step("receipt", async () => {
+    const { canonicalJsonSha256 } = await import("../dist/src/sol-ledger.js");
+    const payload = buildPayload({
+      packageVersion, dependencyCount, secretAudit, selfTest, smoke, benchmark, comparison,
+      baselineSha256: canonicalJsonSha256(baseline), candidateBenchmarkSha256: canonicalJsonSha256(benchmark),
+      sbomValidation, sbomSha256: canonicalJsonSha256(sbom),
+    });
+    return {
+      ...payload,
+      integrity: { algorithm: "sha256-jcs", receiptSha256: canonicalJsonSha256(payload) },
+    };
+  });
 }
 
 async function main() {
   try {
-    process.stdout.write(`${JSON.stringify(await runPrivateReadiness(parseArguments(process.argv.slice(2))), null, 2)}\n`);
+    process.stdout.write(`${JSON.stringify(await runPrivateReadiness(
+      parseArguments(process.argv.slice(2)), { reporter: textProgressReporter() },
+    ), null, 2)}\n`);
   } catch (error) {
     process.stderr.write(`${JSON.stringify({
       version: 1,

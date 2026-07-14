@@ -7,12 +7,12 @@ import { isDeepStrictEqual } from "node:util";
 import type { EvidenceCandidate, VerifiedEvidence } from "./domain.js";
 import { assertEvidenceCandidate, assertVerifiedEvidence } from "./evidence-envelope.js";
 import { promoteCandidate } from "./forge.js";
+import { MAX_SOURCE_BYTES } from "./limits.js";
 import { canonicalJsonSha256 } from "./sol-ledger.js";
 
 const SHA256 = /^[0-9a-f]{64}$/u;
 const SOURCE_NAME = "source.bin" as const;
 const PACKET_OBJECT_PATH = "packet:source" as const;
-const MAX_SOURCE_BYTES = 16 * 1024 * 1024;
 export const MAX_PACKET_BYTES = 26 * 1024 * 1024;
 
 export interface PortableEvidencePacket {

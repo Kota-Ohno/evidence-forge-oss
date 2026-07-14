@@ -77,6 +77,8 @@ describe("LocalWorkspace", () => {
     expect(workspace.schemaVersion).toBe(WORKSPACE_SCHEMA_VERSION);
     workspace.saveCandidate(candidate, OBSERVED_AT);
     expect(workspace.getCandidate(candidate.id)).toEqual(candidate);
+    expect(workspace.getReviewItem(candidate.id)).toMatchObject({ candidate });
+    expect(workspace.getReviewItem("candidate_missing")).toBeUndefined();
     expect(workspace.getSnapshotsByHash(candidate.snapshot.sha256)).toEqual([candidate.snapshot]);
     expect(workspace.listPromotions()).toEqual([]);
     expect(workspace.getEvidence("evidence_missing")).toBeUndefined();

@@ -1,7 +1,7 @@
 import { gzipSync } from "node:zlib";
 import { createHash } from "node:crypto";
 import { lookup as dnsLookup } from "node:dns";
-import { chmod, mkdir, mkdtemp, readFile, rm, stat, symlink, unlink, writeFile } from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, readFile, rm, stat, symlink, truncate, unlink, writeFile } from "node:fs/promises";
 import { createServer, type RequestListener, type Server } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -177,6 +177,12 @@ describe("web source capture", () => {
     await expect(captureWebSource({ ...base, url: `${slow.url}/gzip`, limits: { maxDecodedBytes: 1024 } })).rejects.toMatchObject({ code: "CONTENT_DECODING_FAILED" });
     await expect(captureWebSource({ ...base, url: `${slow.url}/loop`, limits: { maxRedirects: 1 } })).rejects.toMatchObject({ code: "REDIRECT_LIMIT_EXCEEDED" });
     await expect(captureWebSource({ ...base, url: `${slow.url}/slow`, limits: { timeoutMs: 10 } })).rejects.toMatchObject({ code: "REQUEST_TIMEOUT" });
+    await expect(captureWebSource({
+      ...base, url: `${slow.url}/wire`, limits: { maxResponseBytes: 9 * 1024 * 1024 },
+    })).resolves.toMatchObject({ status: 200 });
+    await expect(captureWebSource({
+      ...base, url: `${slow.url}/wire`, limits: { maxDecodedBytes: 16 * 1024 * 1024 + 1 },
+    })).rejects.toThrow("cannot exceed the public 16 MiB ceiling");
   });
 
   it("rehashes before candidate creation and leaves a raw capture unpromoted", async () => {
@@ -187,6 +193,20 @@ describe("web source capture", () => {
     await writeFile(capture.snapshot.objectPath, tampered);
     await expect(createCandidateFromWebCapture({ capture, exact: "Unique citation." })).rejects.toMatchObject({ code: "SNAPSHOT_HASH_MISMATCH" });
     await expect(promoteCandidate({ ...capture, kind: "WebSourceCapture" })).rejects.toMatchObject({ code: "INVALID_CANDIDATE_KIND" });
+  });
+
+  it("rejects an oversized corrupt object-store collision without reading it", async () => {
+    const body = Buffer.from("small response");
+    const { root, url } = await fixture((_request, response) => response.end(body));
+    const digest = createHash("sha256").update(body).digest("hex");
+    const directory = join(root, "objects", "sha256", digest.slice(0, 2));
+    const target = join(directory, digest.slice(2));
+    await mkdir(directory, { recursive: true });
+    await writeFile(target, "corrupt");
+    await truncate(target, 16 * 1024 * 1024 + 1);
+    await expect(captureWebSource({
+      workspace: root, url, transportPolicy: { allowPrivateAddresses: true },
+    })).rejects.toMatchObject({ code: "DECODED_RESPONSE_TOO_LARGE" });
   });
 
   it("derives and revalidates an offline HTML citation view while retaining raw source bytes", async () => {
