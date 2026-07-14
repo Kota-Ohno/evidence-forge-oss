@@ -13,6 +13,8 @@ fails. **An observation is only a candidate; promotion is always explicit.**
 > **Distribution status:** install from this source repository with pnpm. The
 > package remains `private: true` and is not published to npm, which prevents an
 > accidental registry release while keeping source installation supported.
+> Before repository visibility is public, cloning requires authorized GitHub
+> access; after visibility changes, the same source-install steps work anonymously.
 
 ## Shortest path
 
@@ -122,7 +124,7 @@ privacy-bounded execution observations, and
 [Sol Ledger Protocol](https://github.com/Kota-Ohno/sol-ledger-protocol-oss)
 provides shared provenance contracts. The
 [Ecosystem Acceptance Kit](https://github.com/Kota-Ohno/ecosystem-acceptance-kit-oss)
-checks exact private revisions and packed behavior together.
+checks exact pinned revisions and packed behavior together.
 
 ## Safety limits
 
@@ -600,7 +602,7 @@ HTML bytes—not the displayed text—remain the source of record.
 The eight most recent entries are keyboard-accessible buttons; selecting one
 shows exact per-product commit changes against its preceding run.
 
-Run the complete private stack acceptance flow with local checkouts of the other
+Run the complete local stack acceptance flow with checkouts of the other
 two repositories:
 
 ```bash
@@ -619,7 +621,7 @@ it before opening the database; legacy reports without integrity remain
 readable. The public contract is
 [`schemas/stack-acceptance-report.schema.json`](schemas/stack-acceptance-report.schema.json).
 For revision-pinned clean-room orchestration, upgrade preflight, and retained
-outer receipts across all three private repositories, use the separate
+outer receipts across all three pinned repositories, use the separate
 [`ecosystem-acceptance-kit-oss`](https://github.com/Kota-Ohno/ecosystem-acceptance-kit-oss)
 `v0.2.0`; this repository command remains the underlying product acceptance.
 
@@ -850,7 +852,7 @@ The public receipt contract is
 Run the named fail-closed regression matrix independently with
 `pnpm failure:matrix`.
 
-Rehearse lineage continuity across two independently pinned private releases:
+Rehearse lineage continuity across two independently pinned source releases:
 
 ```bash
 pnpm acceptance:lineage \
