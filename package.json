@@ -1,9 +1,27 @@
 {
   "name": "evidence-forge",
-  "version": "6.3.1",
-  "private": true,
+  "version": "6.4.0",
+  "description": "Local-first source-backed Evidence creation, review, packaging, and offline verification",
   "type": "module",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Kota-Ohno/evidence-forge-oss.git"
+  },
+  "homepage": "https://github.com/Kota-Ohno/evidence-forge-oss#readme",
+  "bugs": {
+    "url": "https://github.com/Kota-Ohno/evidence-forge-oss/issues"
+  },
+  "keywords": [
+    "evidence",
+    "provenance",
+    "citation",
+    "audit",
+    "ai-agent"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "packageManager": "pnpm@11.0.8",
   "types": "dist/src/index.d.ts",
   "exports": {

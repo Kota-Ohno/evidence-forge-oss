@@ -5,7 +5,7 @@ import { assertCitationView, CitationViewError } from "./html-citation-view.js";
 export const SOL_LEDGER_PROTOCOL_COMMIT = "6139085503dec278e86cf0d9673d84ba34eb1e92";
 export const SOL_LEDGER_SCHEMA_VERSION = "0.1.0" as const;
 export const EVIDENCE_PROMOTION_POLICY = "evidence-forge/verified-local-citation@1" as const;
-export const EVIDENCE_FORGE_SOFTWARE = "evidence-forge@6.3.1" as const;
+export const EVIDENCE_FORGE_SOFTWARE = "evidence-forge@6.4.0" as const;
 
 export interface SolLedgerArtifactRef {
   readonly artifactId: string;

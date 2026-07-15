@@ -10,18 +10,24 @@ Evidence Forge stores immutable source snapshots, records exact citation
 selectors, and refuses promotion when source integrity or citation verification
 fails. **An observation is only a candidate; promotion is always explicit.**
 
-> **Distribution status:** install from this source repository with pnpm. The
-> package remains `private: true` and is not published to npm, which prevents an
-> accidental registry release while keeping source installation supported.
-> Before repository visibility is public, cloning requires authorized GitHub
-> access; after visibility changes, the same source-install steps work anonymously.
+Published on npm as [`evidence-forge`](https://www.npmjs.com/package/evidence-forge)
+under the MIT License.
 
 ## Shortest path
 
-Requires Node.js 24.4 or newer. The repository pins pnpm 11.0.8; if `corepack`
-is unavailable but that pnpm version is already installed, skip the
-`corepack enable` line. Start with the local-only tutorial, whose portable
-packet and path-free result are deterministic:
+Requires Node.js 24.4 or newer. Verify the installed package with its local-only
+self-test:
+
+```bash
+pnpm add --global evidence-forge
+evidence-forge-self-test run
+```
+
+`npm install --global evidence-forge` is the npm equivalent.
+
+For repository development, the source tree pins pnpm 11.0.8; if `corepack` is
+unavailable but that pnpm version is already installed, skip `corepack enable`.
+The tutorial's portable packet and path-free result are deterministic:
 
 ```bash
 git clone https://github.com/Kota-Ohno/evidence-forge-oss.git
@@ -74,9 +80,19 @@ unset exact
 `--exact TEXT` remains available for compatibility. Keep
 `--silent` so pnpm itself does not echo caller arguments.
 
-Installed-package equivalent: `evidence-forge forge-local` with the same
-options. The repository alias performs a safe incremental stale-source check
-before starting the single-process Evidence workflow.
+Installed-package equivalent:
+
+```bash
+evidence-forge forge-local \
+  --source notes.txt \
+  --exact-file ./private-exact.txt \
+  --available-at 2026-07-11T00:00:00Z \
+  --directory ./my-evidence \
+  --promote-immediately
+```
+
+The repository alias performs a safe incremental stale-source check before
+starting the single-process Evidence workflow.
 
 To run the same critical transition manually:
 

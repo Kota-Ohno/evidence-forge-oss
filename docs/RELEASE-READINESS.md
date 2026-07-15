@@ -64,7 +64,8 @@
   主要CLI workflow、trust boundary、resource limits、Review Workspace screenshotを備える。
 - `docs/OPERATOR.md` にproduction-oriented runbook、`docs/TRUST-AUDIT.md` に残る責任境界、
   `docs/PERFORMANCE.md` に公開上限の再現可能な性能試験がある。
-- packageは現在 `private: true`。npm公開は意図せず実行できない。
+- npm公開はpacked-install smoke、公開ファイルallowlist、production SBOM、
+  zero-vulnerability gateを通過した明示的なリリース操作として行う。
 - public deploy手順は、hosted productではないため対象外。
 
 ## Commands executed

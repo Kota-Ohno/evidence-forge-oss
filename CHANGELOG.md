@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 6.4.0 — 2026-07-15
+
+- Publish the verified `evidence-forge` npm package with explicit repository,
+  support, license, and public-access metadata.
+
 - Add a local quickstart with a deterministic portable packet and path-free
   result that exercises capture, explicit promotion, packet export, and offline
   verification without network access, source-text output, or existing-path
